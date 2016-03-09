@@ -13,6 +13,10 @@ git clone https://github.com/VirtualWatershed/vw-jemez && cd vw-jemez
 
 ### 2. Use a virtual environment and install dependencies
 
+The `virtualenv` command used below can be installed with pip: `pip install virtualenv`.
+
+Then with `virtualenv` installed, run the following
+
 ```bash
 virtualenv venv
 ```
@@ -25,7 +29,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Unit tests
+## Check installation by running unit tests
 
 To check that all is well, try running the unit tests:
 
