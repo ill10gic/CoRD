@@ -67,8 +67,8 @@ class TestDflow(unittest.TestCase):
                 expected_output.as_matrix(), generated_output.as_matrix()
             )
 
-    def test_casimir_with_dflow_io(self):
-        assert False
+    # def test_casimir_with_dflow_io(self):
+        # assert False
 
-    def test_mesh_to_asc(self):
-        assert False
+    # def test_mesh_to_asc(self):
+        # assert False
