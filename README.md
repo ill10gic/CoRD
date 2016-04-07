@@ -1,7 +1,6 @@
 # vw-Jemez
 
-Functions for running our modified CASiMiR model and D-FLOW coupled
-model on a supercomputer.
+Functions for running our modified CASiMiR model and D-FLOW coupled.
 
 First we show some use instructions then installation instructions.
 
