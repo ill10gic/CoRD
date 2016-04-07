@@ -41,11 +41,13 @@ nosetests -v
 The output should be
 
 ```
+asc2pol should create proper headers and formatted data ... ok
 test_casimir (test.test_dflow_casimir.TestDflow) ... ok
+Test conversion of vegetation map to Manning's roughness map ... ok
 test_vegmap_properly_read (test.test_dflow_casimir.TestDflow) ... ok
 
 ----------------------------------------------------------------------
-Ran 2 tests in 0.127s
+Ran 4 tests in 0.384s
 
 OK
 ```
