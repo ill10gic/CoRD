@@ -85,9 +85,14 @@ class TestDflow(unittest.TestCase):
         """
         asc2pol should create proper headers and formatted data
         """
+        assert False
+        expected_pol = Pol('test/data/expected_pol')
+
+
 
     # def test_casimir_with_dflow_io(self):
         # assert False
 
     # def test_mesh_to_asc(self):
         # assert False
+

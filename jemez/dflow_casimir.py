@@ -314,15 +314,54 @@ class ESRIAsc:
         return NotImplemented
 
 
-class Pol:
+class NPol:
+    """
+    Wrapper creating and/or reading the .pol files of n-values for DFLOW
+    """
+    df = None
+
+    x = None
+    y = None
+    n = None
 
     def __init__(self, pol_path=None):
-        self.df = pd.read_table(pol_path, skiprows=2)
-        self.df.coln
-        self.
+        self.df = read_table(
+            pol_path, skiprows=2, skipinitialspace=True, sep='   ',
+            header=None, names=['x', 'y', 'n'], engine='python'
+        )
+
+        self.x = array(self.df.x)
+        self.y = array(self.df.y)
+        self.n = array(self.df.n)
 
     def write(self, out_path):
-        pass
+        """
+        write the Pol to file
+
+        Returns: None
+        """
+        if self.x is not None and self.y is not None and self.n is not None:
+
+            assert len(self.x) == len(self.y) and len(self.y) == len(self.n), \
+                "Lengths of columns is not equal!"
+
+            with open(out_path, 'w') as f:
+                f.write('L1\n')
+
+                # weird, but apparently what DFLOW requires
+                f.write(' '*4 + str(len(self.x)) + ' '*5 + '3\n')
+
+                f.write(
+                    '\n'.join(
+                        [
+                            ' '*3 + (' '*3).join([str(val) for val in el])
+                            for el in zip(self.x, self.y, self.n)
+                        ]
+                    ) +
+                    '\n'
+                )
+
+
 
 if __name__ == '__main__':
 
