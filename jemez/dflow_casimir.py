@@ -5,7 +5,8 @@ watershed.
 import copy
 
 from netCDF4 import Dataset
-from numpy import array, fromstring, meshgrid, reshape, flipud, isnan
+from numpy import (array, concatenate, fromstring, meshgrid,
+                   reshape, flipud, isnan)
 from scipy.interpolate import griddata
 from pandas import read_table, read_excel, Series
 
@@ -30,6 +31,9 @@ def casimir_with_dflow_io(vegetation_map, zone_map,
             casimir run. Encompasses the landscape model for the watershed.
             Can have one or two 'Code' columns and must have exactly one
             'shear_resis' column and exactly one 'n_val' column
+
+    Returns:
+        (NPol): polygon representation of the map of nvalues
     """
     if not isinstance(vegetation_map, ESRIAsc):
         raise TypeError('vegetation_map must be an ESRIAsc instance')
@@ -38,7 +42,13 @@ def casimir_with_dflow_io(vegetation_map, zone_map,
 
     shear_map = shear_mesh_to_asc(shear_nc_path, vegetation_map.header_dict())
 
-    return casimir(vegetation_map, zone_map, shear_map, casimir_required_data)
+    return NPol.from_ascii(
+        veg2n(
+            casimir(
+                vegetation_map, zone_map, shear_map, casimir_required_data
+            ), casimir_required_data
+        )
+    )
 
 
 def casimir(vegetation_map, zone_map, shear_map, casimir_required_data):
@@ -325,14 +335,39 @@ class NPol:
     n = None
 
     def __init__(self, pol_path=None):
-        self.df = read_table(
-            pol_path, skiprows=2, skipinitialspace=True, sep='   ',
-            header=None, names=['x', 'y', 'n'], engine='python'
+
+        if pol_path is not None:
+            self.df = read_table(
+                pol_path, skiprows=2, skipinitialspace=True, sep='   ',
+                header=None, names=['x', 'y', 'n'], engine='python'
+            )
+
+            self.x = array(self.df.x)
+            self.y = array(self.df.y)
+            self.n = array(self.df.n)
+
+    @classmethod
+    def from_ascii(cls, asc):
+        """
+        generate a polygon file from ESRIAsc
+        """
+        assert isinstance(asc, ESRIAsc), "asc input must be ESRIAsc"
+
+        c = cls()
+        grid = meshgrid(
+            array(
+                [asc.xllcorner + asc.cellsize*i for i in range(asc.ncols)]
+            ),
+            array(
+                [asc.yllcorner + asc.cellsize*i for i in range(asc.nrows)]
+            )
         )
 
-        self.x = array(self.df.x)
-        self.y = array(self.df.y)
-        self.n = array(self.df.n)
+        c.x = concatenate(grid[0])
+        c.y = concatenate(grid[1])
+        c.n = array(asc.data)
+
+        return c
 
     def write(self, out_path):
         """
@@ -354,13 +389,27 @@ class NPol:
                 f.write(
                     '\n'.join(
                         [
-                            ' '*3 + (' '*3).join([str(val) for val in el])
+                            ' '*3 + (' '*3).join(
+                                ["{:1.7e}".format(val) for val in el]
+                            )
                             for el in zip(self.x, self.y, self.n)
                         ]
                     ) +
                     '\n'
                 )
+        else:
+            raise Exception("Trying to write an incomplete polygon file")
 
+    def __eq__(self, other):
+
+        if isinstance(other, NPol):
+            ret = all(self.x == other.x)
+            ret = all(ret and self.y == other.y)
+            ret = all(ret and self.n == other.n)
+
+            return ret
+
+        return NotImplemented
 
 
 if __name__ == '__main__':

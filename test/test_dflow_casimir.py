@@ -5,7 +5,7 @@ to/from the virtual watershed.
 import numpy
 import unittest
 
-from jemez.dflow_casimir import ESRIAsc, casimir, veg2n
+from jemez.dflow_casimir import ESRIAsc, NPol, casimir, veg2n
 
 
 class TestDflow(unittest.TestCase):
@@ -85,14 +85,16 @@ class TestDflow(unittest.TestCase):
         """
         asc2pol should create proper headers and formatted data
         """
-        assert False
-        expected_pol = Pol('test/data/expected_pol')
+        expected_pol = NPol('test/data/expected_n.pol')
 
+        nmap = ESRIAsc('test/data/expected_nmap.asc')
 
+        npol = NPol.from_ascii(nmap)
+
+        assert npol == expected_pol
 
     # def test_casimir_with_dflow_io(self):
         # assert False
 
     # def test_mesh_to_asc(self):
         # assert False
-
