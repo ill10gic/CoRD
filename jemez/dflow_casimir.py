@@ -169,6 +169,41 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     return ESRIAsc(data=data, **header_dict)
 
 
+def veg2n(veg_map, casimir_required_data):
+    """
+    Creat an ESRIAsc representation of an ESRI .asc file that contains roughness
+    values substituted for vegetation codes. The translation is found in the
+    Excel file found at lookup_path.
+
+    Arguments:
+        veg_map (ESRIAsc): path to ESRI .asc file with vegetation codes
+        casimir_required_data (str): path to Excel file with vegetation codes mapped
+            to Manning's roughness n-values. The Excel file must have four
+            columns with headers
+                Code	shear_resis	Code	n_val
+            on the first sheet.
+
+    Raises:
+        (ValueError) if there is a vegetation code in the .asc that is not
+            found in the lookup table
+
+    Returns:
+        (ESRIAsc) ESRI .asc map of Manning's n-values in place of veg codes
+    """
+    assert isinstance(veg_map, ESRIAsc), \
+        "veg_map must be an instance of ESRIAsc"
+
+    cas_df = read_excel(casimir_required_data)
+    veg2n_dict = dict(
+        zip(cas_df['Code.1'], cas_df['n_val'])
+    )
+
+    # still called veg_map so we don't have to copy
+    veg_map.data.replace(veg2n_dict, inplace=True)
+
+    return veg_map
+
+
 class ESRIAsc:
 
     def __init__(self, file_path=None, ncols=None, nrows=None,

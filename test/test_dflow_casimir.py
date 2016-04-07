@@ -2,11 +2,10 @@
 Tests for posting/ingetsting dflow and casimir data to each respective model
 to/from the virtual watershed.
 """
-import json
 import numpy
 import unittest
 
-from jemez.dflow_casimir import ESRIAsc, casimir
+from jemez.dflow_casimir import ESRIAsc, casimir, veg2n
 
 
 class TestDflow(unittest.TestCase):
@@ -15,8 +14,7 @@ class TestDflow(unittest.TestCase):
     """
     def setUp(self):
         self.ascii_veg = 'test/data/vegcode.asc'
-        self.excel_veg_to_nval = \
-            'test/data/lookup_table.xlsx'
+        self.casimir_required_data = 'test/data/resist_manning_lookup.xlsx'
         self.expected_ascii_roughness = \
             'test/data/roughness.asc'
 
@@ -43,11 +41,10 @@ class TestDflow(unittest.TestCase):
         # test results when loaded from file
         veg_map_file = self.ascii_veg
         shear_map_file = 'test/data/shear.asc'
-        casimir_required_data = 'test/data/resist_manning_lookup.xlsx'
         zone_map_file = 'test/data/zonemap.asc'
 
         generated_output = casimir(veg_map_file, zone_map_file, shear_map_file,
-                                   casimir_required_data)
+                                   self.casimir_required_data)
 
         assert expected_output == generated_output, \
             "expected: {}\ngenerated: {}".format(
@@ -60,12 +57,29 @@ class TestDflow(unittest.TestCase):
         shear_map = ESRIAsc(shear_map_file)
 
         generated_output = casimir(veg_map, zone_map,
-                                   shear_map, casimir_required_data)
+                                   shear_map, self.casimir_required_data)
 
         assert expected_output == generated_output, \
             "expected: {}\ngenerated: {}".format(
                 expected_output.as_matrix(), generated_output.as_matrix()
             )
+
+    def test_veg2n(self):
+        """
+        Test conversion of vegetation map to Manning's roughness map
+        """
+        expected_nmap = ESRIAsc(
+            'test/data/expected_nmap.asc'
+        )
+
+        veg_map = ESRIAsc(
+            'test/data/vegcode.asc'
+        )
+
+        nmap = veg2n(veg_map, self.casimir_required_data)
+
+        assert nmap == expected_nmap, \
+            "nmap: {}\nexpected_nmap: {}".format(nmap.data, expected_nmap.data)
 
     # def test_casimir_with_dflow_io(self):
         # assert False
