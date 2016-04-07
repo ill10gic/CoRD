@@ -13,7 +13,7 @@ To get the first .pol of n-values for use in the first D-FLOW run, use the
 `initial_n.pol`, we would run
 
 ```
-$ python jemez/veg2npol.py data/vegclass_2z.asc initial_n.pol
+python jemez/veg2npol.py data/vegclass_2z.asc initial_n.pol
 ```
 
 To run (not)CASiMiR to use D-FLOW inputs and output a .pol of n-values, use
@@ -23,7 +23,7 @@ and the path to our vegetation map is `data/vegclass_2z.asc`, we would
 run (not)casimir by running
 
 ```
-    $ python jemez/dflow_casimir.py ~/local_data/dflow_outputs/jemez_r02_map.nc ~/local_data/casimir_out/veg-out-1.asc
+python jemez/dflow_casimir.py ~/local_data/dflow_outputs/jemez_r02_map.nc ~/local_data/casimir_out/veg-out-1.asc
 ```
 
 # Installation
