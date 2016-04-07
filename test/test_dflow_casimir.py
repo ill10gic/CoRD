@@ -81,6 +81,11 @@ class TestDflow(unittest.TestCase):
         assert nmap == expected_nmap, \
             "nmap: {}\nexpected_nmap: {}".format(nmap.data, expected_nmap.data)
 
+    def test_asc2pol(self):
+        """
+        asc2pol should create proper headers and formatted data
+        """
+
     # def test_casimir_with_dflow_io(self):
         # assert False
 

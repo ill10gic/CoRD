@@ -7,7 +7,7 @@ import copy
 from netCDF4 import Dataset
 from numpy import array, fromstring, meshgrid, reshape, flipud, isnan
 from scipy.interpolate import griddata
-from pandas import read_excel, Series
+from pandas import read_table, read_excel, Series
 
 
 def casimir_with_dflow_io(vegetation_map, zone_map,
@@ -313,6 +313,16 @@ class ESRIAsc:
 
         return NotImplemented
 
+
+class Pol:
+
+    def __init__(self, pol_path=None):
+        self.df = pd.read_table(pol_path, skiprows=2)
+        self.df.coln
+        self.
+
+    def write(self, out_path):
+        pass
 
 if __name__ == '__main__':
 
