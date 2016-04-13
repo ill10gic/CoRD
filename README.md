@@ -1,6 +1,7 @@
-# vw-Jemez
+# vw-RipCAS-DFLOW
 
-Functions for running our modified CASiMiR model and D-FLOW coupled.
+Functions for running our Riparian Community Alteration and Succession model, RipCAS, and D-FLOW coupled. 
+We are still in the process of changing names from casimir -> ripcas as we move from the [CASiMiR vegetation model, which was closed-source and windows-only](www.casimir-software.de/ENG/veg_eng.html)
 
 First we show some use instructions then installation instructions.
 
@@ -15,7 +16,7 @@ To get the first .pol of n-values for use in the first D-FLOW run, use the
 python jemez/veg2npol.py data/vegclass_2z.asc initial_n.pol
 ```
 
-To run (not)CASiMiR to use D-FLOW inputs and output a .pol of n-values, use
+To run RipCAS to use D-FLOW inputs and output a .pol of n-values, use
 the `jemez/dflow_casimir.py` script. For example, if the path to the
 output netCDF with shear stress from D-FLOW is `data/jemez_r02_map.nc`
 and the path to our vegetation map is `data/vegclass_2z.asc`, we would
