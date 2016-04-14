@@ -1,7 +1,7 @@
 # vw-RipCAS-DFLOW
 
 Functions for running our Riparian Community Alteration and Succession model, RipCAS, and D-FLOW coupled. 
-We are still in the process of changing names from casimir -> ripcas as we move from the [CASiMiR vegetation model, which was closed-source and windows-only](www.casimir-software.de/ENG/veg_eng.html)
+We are still in the process of changing names from casimir -> ripcas as we move from the [CASiMiR vegetation model, which is closed-source and windows-only](www.casimir-software.de/ENG/veg_eng.html)
 
 First we show some use instructions then installation instructions.
 
