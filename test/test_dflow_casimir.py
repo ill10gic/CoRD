@@ -1,11 +1,11 @@
 """
-Tests for posting/ingetsting dflow and casimir data to each respective model
+Tests for posting/ingetsting dflow and ripcas data to each respective model
 to/from the virtual watershed.
 """
 import numpy
 import unittest
 
-from jemez.dflow_casimir import ESRIAsc, NPol, casimir, veg2n
+from ripcas_dflow import ESRIAsc, NPol, ripcas, veg2n
 
 
 class TestDflow(unittest.TestCase):
@@ -14,7 +14,7 @@ class TestDflow(unittest.TestCase):
     """
     def setUp(self):
         self.ascii_veg = 'test/data/vegcode.asc'
-        self.casimir_required_data = 'test/data/resist_manning_lookup.xlsx'
+        self.ripcas_required_data = 'test/data/resist_manning_lookup.xlsx'
         self.expected_ascii_roughness = \
             'test/data/roughness.asc'
 
@@ -31,9 +31,9 @@ class TestDflow(unittest.TestCase):
 
         assert (vmat_unique == vmat_expected).all()
 
-    def test_casimir(self):
+    def test_ripcas(self):
 
-        # load the expected ESRIAsc output from running casimir
+        # load the expected ESRIAsc output from running ripcas
         expected_output = ESRIAsc(
             'test/data/expected_veg_output.asc'
         )
@@ -43,8 +43,8 @@ class TestDflow(unittest.TestCase):
         shear_map_file = 'test/data/shear.asc'
         zone_map_file = 'test/data/zonemap.asc'
 
-        generated_output = casimir(veg_map_file, zone_map_file, shear_map_file,
-                                   self.casimir_required_data)
+        generated_output = ripcas(veg_map_file, zone_map_file, shear_map_file,
+                                   self.ripcas_required_data)
 
         assert expected_output == generated_output, \
             "expected: {}\ngenerated: {}".format(
@@ -56,8 +56,8 @@ class TestDflow(unittest.TestCase):
         zone_map = ESRIAsc(zone_map_file)
         shear_map = ESRIAsc(shear_map_file)
 
-        generated_output = casimir(veg_map, zone_map,
-                                   shear_map, self.casimir_required_data)
+        generated_output = ripcas(veg_map, zone_map,
+                                   shear_map, self.ripcas_required_data)
 
         assert expected_output == generated_output, \
             "expected: {}\ngenerated: {}".format(
@@ -76,7 +76,7 @@ class TestDflow(unittest.TestCase):
             'test/data/vegcode.asc'
         )
 
-        nmap = veg2n(veg_map, self.casimir_required_data)
+        nmap = veg2n(veg_map, self.ripcas_required_data)
 
         assert nmap == expected_nmap, \
             "nmap: {}\nexpected_nmap: {}".format(nmap.data, expected_nmap.data)
@@ -93,7 +93,7 @@ class TestDflow(unittest.TestCase):
 
         assert npol == expected_pol
 
-    # def test_casimir_with_dflow_io(self):
+    # def test_ripcas_with_dflow_io(self):
         # assert False
 
     # def test_mesh_to_asc(self):

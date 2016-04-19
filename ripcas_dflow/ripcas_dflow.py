@@ -1,5 +1,5 @@
 """
-Utilities for interacting with dflow and casimir models via the virtual
+Utilities for interacting with dflow and ripcas models via the virtual
 watershed.
 """
 import copy
@@ -11,15 +11,15 @@ from scipy.interpolate import griddata
 from pandas import read_table, read_excel, Series
 
 
-def casimir_with_dflow_io(vegetation_map, zone_map,
-                          shear_nc_path, casimir_required_data):
+def ripcas_with_dflow_io(vegetation_map, zone_map,
+                          shear_nc_path, ripcas_required_data):
     """
-    Wrapper for using DFLOW input/output with casimir. Note instead of
+    Wrapper for using DFLOW input/output with ripcas. Note instead of
     shear_map we have shear_nc_path. Use shear_mesh_to_asc to convert the
-    shear_mesh that comes from D-FLOW to a shear_map for input to casimir.
-    When casimir finishes its vegetation updates, convert the updated
+    shear_mesh that comes from D-FLOW to a shear_map for input to ripcas.
+    When ripcas finishes its vegetation updates, convert the updated
     vegetation map to a Manning n-value map for use by DFLOW. See the
-    casimir function below for more details on the model and arguments.
+    ripcas function below for more details on the model and arguments.
 
     Arguments:
         vegetation_map (ESRIAsc): location on disk or ESRIAsc
@@ -27,8 +27,8 @@ def casimir_with_dflow_io(vegetation_map, zone_map,
         zone_map (ESRIAsc): location on disk or ESRIAsc representation
             of the zone map.
         shear_nc_path (str): location on disk of DFLOW shear output netCDF
-        casimir_required_data (str): Excel spreadsheet of data needed for
-            casimir run. Encompasses the landscape model for the watershed.
+        ripcas_required_data (str): Excel spreadsheet of data needed for
+            ripcas run. Encompasses the landscape model for the watershed.
             Can have one or two 'Code' columns and must have exactly one
             'shear_resis' column and exactly one 'n_val' column
 
@@ -44,14 +44,14 @@ def casimir_with_dflow_io(vegetation_map, zone_map,
 
     return NPol.from_ascii(
         veg2n(
-            casimir(
-                vegetation_map, zone_map, shear_map, casimir_required_data
-            ), casimir_required_data
+            ripcas(
+                vegetation_map, zone_map, shear_map, ripcas_required_data
+            ), ripcas_required_data
         )
     )
 
 
-def casimir(vegetation_map, zone_map, shear_map, casimir_required_data):
+def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
     """
     Simple version of the CASiMiR model for vegetation succession. Before the
     model is run, we check that all the unique values from vegetation_map are
@@ -66,8 +66,8 @@ def casimir(vegetation_map, zone_map, shear_map, casimir_required_data):
             of the zone map.
         shear_map (str or ESRIAsc): location on disk or ESRIAsc representation
             of the shear stress map
-        casimir_required_data (str): Excel spreadsheet of data needed for
-            casimir run. Encompasses the landscape model for the watershed.
+        ripcas_required_data (str): Excel spreadsheet of data needed for
+            ripcas run. Encompasses the landscape model for the watershed.
             Can have one or two 'Code' columns and must have exactly one
             'shear_resis' column and exactly one 'n_val' column
 
@@ -90,8 +90,8 @@ def casimir(vegetation_map, zone_map, shear_map, casimir_required_data):
     elif not isinstance(zone_map, ESRIAsc):
         raise TypeError('zone_map must be type str of ESRIAsc')
 
-    if type(casimir_required_data) is str:
-        cas_df = read_excel(casimir_required_data)
+    if type(ripcas_required_data) is str:
+        cas_df = read_excel(ripcas_required_data)
 
         # sanity check to make sure our lookup is correct
         assert 'Code.1' in cas_df  # TODO generalize later
@@ -179,7 +179,7 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     return ESRIAsc(data=data, **header_dict)
 
 
-def veg2n(veg_map, casimir_required_data):
+def veg2n(veg_map, ripcas_required_data):
     """
     Creat an ESRIAsc representation of an ESRI .asc file that contains roughness
     values substituted for vegetation codes. The translation is found in the
@@ -187,7 +187,7 @@ def veg2n(veg_map, casimir_required_data):
 
     Arguments:
         veg_map (ESRIAsc): path to ESRI .asc file with vegetation codes
-        casimir_required_data (str): path to Excel file with vegetation codes mapped
+        ripcas_required_data (str): path to Excel file with vegetation codes mapped
             to Manning's roughness n-values. The Excel file must have four
             columns with headers
                 Code	shear_resis	Code	n_val
@@ -203,7 +203,7 @@ def veg2n(veg_map, casimir_required_data):
     assert isinstance(veg_map, ESRIAsc), \
         "veg_map must be an instance of ESRIAsc"
 
-    cas_df = read_excel(casimir_required_data)
+    cas_df = read_excel(ripcas_required_data)
     veg2n_dict = dict(
         zip(cas_df['Code.1'], cas_df['n_val'])
     )
@@ -415,15 +415,15 @@ class NPol:
 if __name__ == '__main__':
 
     help_msg = '''
-dflow_casimir v1.0  -  Matthew Turner <maturner01@gmail.com>
+dflow_ripcas v1.0  -  Matthew Turner <maturner01@gmail.com>
 
 Usage:
 
-    python jemez/dflow_casimir.py <path-to-shear-nc> <path-to-save-output-vegmap>
+    python jemez/dflow_ripcas.py <path-to-shear-nc> <path-to-save-output-vegmap>
 
 Example:
 
-    $ python jemez/dflow_casimir.py ~/local_data/dflow_outputs/jemez_r02_map.nc ~/local_data/casimir_out/veg-out-1.asc
+    $ python jemez/dflow_ripcas.py ~/local_data/dflow_outputs/jemez_r02_map.nc ~/local_data/ripcas_out/veg-out-1.asc
     '''
 
     import sys
@@ -440,10 +440,10 @@ Example:
 
     vegetation_map = ESRIAsc('data/vegclass_2z.asc')
     zone_map = ESRIAsc('data/zonemap_2z.asc')
-    casimir_data = 'data/casimir-data-requirements.xlsx'
+    ripcas_data = 'data/ripcas-data-requirements.xlsx'
 
-    vegout = casimir_with_dflow_io(
-        vegetation_map, zone_map, shear_nc, casimir_data
+    vegout = ripcas_with_dflow_io(
+        vegetation_map, zone_map, shear_nc, ripcas_data
     )
 
     vegout.write(vegout_path)
