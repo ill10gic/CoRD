@@ -375,7 +375,17 @@ class Pol:
 
     @classmethod
     def from_river_geometry_file(cls, geom_file):
-        pass
+
+        c = cls()
+
+        df = read_table(geom_file)
+        c.df = df
+
+        c.x = array(df.X)
+        c.y = array(df.Y)
+        c.z = array(df.Z)
+
+        return c
 
     def write(self, out_path):
         """
