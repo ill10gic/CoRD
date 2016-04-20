@@ -3,7 +3,7 @@ Script to convert an ESRI .asc vegetation map to an equivalent polygon (.pol)
 """
 import sys
 
-from dflow_casimir import veg2n, NPol, ESRIAsc
+from dflow_casimir import veg2n, Pol, ESRIAsc
 
 if __name__ == '__main__':
 
@@ -31,6 +31,6 @@ Example:
         sys.exit(0)
 
     asc = veg2n(ESRIAsc(sys.argv[1]), 'data/casimir-data-requirements.xlsx')
-    pol = NPol.from_ascii(asc)
+    pol = Pol.from_ascii(asc)
 
     pol.write(sys.argv[2])

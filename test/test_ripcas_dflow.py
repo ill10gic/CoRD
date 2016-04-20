@@ -5,7 +5,7 @@ to/from the virtual watershed.
 import numpy
 import unittest
 
-from ripcas_dflow import ESRIAsc, NPol, ripcas, veg2n
+from ripcas_dflow import ESRIAsc, Pol, ripcas, veg2n
 
 
 class TestDflow(unittest.TestCase):
@@ -44,7 +44,7 @@ class TestDflow(unittest.TestCase):
         zone_map_file = 'test/data/zonemap.asc'
 
         generated_output = ripcas(veg_map_file, zone_map_file, shear_map_file,
-                                   self.ripcas_required_data)
+                                  self.ripcas_required_data)
 
         assert expected_output == generated_output, \
             "expected: {}\ngenerated: {}".format(
@@ -57,7 +57,7 @@ class TestDflow(unittest.TestCase):
         shear_map = ESRIAsc(shear_map_file)
 
         generated_output = ripcas(veg_map, zone_map,
-                                   shear_map, self.ripcas_required_data)
+                                  shear_map, self.ripcas_required_data)
 
         assert expected_output == generated_output, \
             "expected: {}\ngenerated: {}".format(
@@ -85,11 +85,11 @@ class TestDflow(unittest.TestCase):
         """
         asc2pol should create proper headers and formatted data
         """
-        expected_pol = NPol('test/data/expected_n.pol')
+        expected_pol = Pol.from_dflow_file('test/data/expected_n.pol')
 
         nmap = ESRIAsc('test/data/expected_nmap.asc')
 
-        npol = NPol.from_ascii(nmap)
+        npol = Pol.from_ascii(nmap)
 
         assert npol == expected_pol
 

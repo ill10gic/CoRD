@@ -12,7 +12,7 @@ from pandas import read_table, read_excel, Series
 
 
 def ripcas_with_dflow_io(vegetation_map, zone_map,
-                          shear_nc_path, ripcas_required_data):
+                         shear_nc_path, ripcas_required_data):
     """
     Wrapper for using DFLOW input/output with ripcas. Note instead of
     shear_map we have shear_nc_path. Use shear_mesh_to_asc to convert the
@@ -33,7 +33,7 @@ def ripcas_with_dflow_io(vegetation_map, zone_map,
             'shear_resis' column and exactly one 'n_val' column
 
     Returns:
-        (NPol): polygon representation of the map of nvalues
+        (Pol): polygon representation of the map of nvalues
     """
     if not isinstance(vegetation_map, ESRIAsc):
         raise TypeError('vegetation_map must be an ESRIAsc instance')
@@ -42,7 +42,7 @@ def ripcas_with_dflow_io(vegetation_map, zone_map,
 
     shear_map = shear_mesh_to_asc(shear_nc_path, vegetation_map.header_dict())
 
-    return NPol.from_ascii(
+    return Pol.from_ascii(
         veg2n(
             ripcas(
                 vegetation_map, zone_map, shear_map, ripcas_required_data
@@ -113,8 +113,8 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
         if veg_val != 0:
 
             is_not_nodata = (
-                shear_map.data[idx] != shear_map.NODATA_value
-                and vegetation_map.data[idx] != vegetation_map.NODATA_value
+                shear_map.data[idx] != shear_map.NODATA_value and
+                vegetation_map.data[idx] != vegetation_map.NODATA_value
             )
 
             veg_needs_reset = (
@@ -324,7 +324,7 @@ class ESRIAsc:
         return NotImplemented
 
 
-class NPol:
+class Pol:
     """
     Wrapper creating and/or reading the .pol files of n-values for DFLOW
     """
@@ -334,17 +334,21 @@ class NPol:
     y = None
     n = None
 
-    def __init__(self, pol_path=None):
+    @classmethod
+    def from_dflow_file(cls, pol_path=None):
 
+        c = cls()
         if pol_path is not None:
-            self.df = read_table(
+            c.df = read_table(
                 pol_path, skiprows=2, skipinitialspace=True, sep='   ',
-                header=None, names=['x', 'y', 'n'], engine='python'
+                header=None, names=['x', 'y', 'z'], engine='python'
             )
 
-            self.x = array(self.df.x)
-            self.y = array(self.df.y)
-            self.n = array(self.df.n)
+            c.x = array(c.df.x)
+            c.y = array(c.df.y)
+            c.z = array(c.df.z)
+
+        return c
 
     @classmethod
     def from_ascii(cls, asc):
@@ -365,9 +369,13 @@ class NPol:
 
         c.x = concatenate(grid[0])
         c.y = concatenate(grid[1])
-        c.n = array(asc.data)
+        c.z = array(asc.data)
 
         return c
+
+    @classmethod
+    def from_river_geometry_file(cls, geom_file):
+        pass
 
     def write(self, out_path):
         """
@@ -375,9 +383,9 @@ class NPol:
 
         Returns: None
         """
-        if self.x is not None and self.y is not None and self.n is not None:
+        if self.x is not None and self.y is not None and self.z is not None:
 
-            assert len(self.x) == len(self.y) and len(self.y) == len(self.n), \
+            assert len(self.x) == len(self.y) and len(self.y) == len(self.z), \
                 "Lengths of columns is not equal!"
 
             with open(out_path, 'w') as f:
@@ -392,7 +400,7 @@ class NPol:
                             ' '*3 + (' '*3).join(
                                 ["{:1.7e}".format(val) for val in el]
                             )
-                            for el in zip(self.x, self.y, self.n)
+                            for el in zip(self.x, self.y, self.z)
                         ]
                     ) +
                     '\n'
@@ -402,10 +410,10 @@ class NPol:
 
     def __eq__(self, other):
 
-        if isinstance(other, NPol):
+        if isinstance(other, Pol):
             ret = all(self.x == other.x)
             ret = all(ret and self.y == other.y)
-            ret = all(ret and self.n == other.n)
+            ret = all(ret and self.z == other.z)
 
             return ret
 
