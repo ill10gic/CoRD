@@ -378,7 +378,7 @@ class Pol:
 
         c = cls()
 
-        df = read_table(geom_file)
+        df = read_table(geom_file, sep='\s+', engine='python')
         c.df = df
 
         c.x = array(df.X)

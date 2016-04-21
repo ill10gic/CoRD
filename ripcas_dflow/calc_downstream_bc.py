@@ -15,53 +15,52 @@ Date:
 import numpy as np
 
 from collections import namedtuple
+from scipy.optimize import minimize_scalar
 
 from ripcas_dflow import Pol
 
 
-class CoupledRun(object):
-
+class ModelRun(object):
+    """
+    A single coupled run. First DFLOW then RipCAS. CoupledRunSequence will
+    encapsulate a series of coupled runs commencing with preparation of the
+    initial vegetation map for DFLOW. For now, assume that the vegetation map
+    is provided to the run_dflow method.
+    """
     def __init__(self):
 
         # have the boundary conditions been found?
         self.bc_converged = False
+
         # has ripcas been run yet?
         self.ripcas_has_run = False
+
         # has dflow?
         self.dflow_has_run = False
 
-        self.process_state = 'not started'
+        self.upstream_bc = None
+        self.downstream_bc = None
 
-        self.upstream_bc = BoundaryCondition()
-        self.downstream_bc = BoundaryCondition()
-
-        self.downstream_bc_ws_step = 0.001
-
-        self.streambed_roughness = 0.04
-
-        self.slope = 0.001
-
-    def calculate_bc(self, dbc_geometry_file):
+    def calculate_bc(self, target_streamflow,
+                     dbc_geometry_file, streambed_roughness, slope):
 
         try:
             dbc_geometry = Pol.from_river_geometry_file(dbc_geometry_file)
 
-            Q_seq = _streamflow_sequence(
-                dbc_geometry, self.streambed_roughness, self.slope, self.slope
+            bc_solver = BoundaryConditionSolver(
+                dbc_geometry, streambed_roughness,
+                slope, target_streamflow
             )
 
-            # TODO need to read from file somehow...
-            historical_streamflow = 20.5
+            bc_solution = bc_solver.solve()
 
-            streamflow_tuple_opt =\
-                _find_minimizing_water_surface(Q_seq, historical_streamflow)
+            if not bc_solution.success:
+                self.bc_converged = False
+                return
 
-            self.bc_converged = True
+            self.downstream_bc.amplitude = bc_solution.ws_elev
 
-            self.upstream_bc.amplitude = streamflow_tuple_opt.ws_elev
-
-            # XXX I don't think this is right...
-            self.downstream_bc.amplitude = streamflow_tuple_opt.streamflow
+            self.upstream_bc.amplitude = bc_solution.streamflow
 
             return
 
@@ -100,41 +99,45 @@ class CoupledRun(object):
         return
 
 
-def _find_minimizing_water_surface(streamflow_sequence, historic_streamflow):
-
-    Q_hist = historic_streamflow
-    err_by_elev = (
-                      (Q.ws_elev, abs(Q.streamflow - Q_hist))
-                      for Q in streamflow_sequence
-                  )
-
-    optimal_ws_elev_and_Q = min(err_by_elev, key=lambda a: a[1])
-
-    return optimal_ws_elev_and_Q
+BoundaryConditionResult = namedtuple(
+    'BoundaryConditionResult', ['ws_elev', 'streamflow', 'error', 'success']
+)
 
 
-def _streamflow_sequence(dbc_geometry, streambed_roughness, slope,
-                         water_surface_step):
-    """
-    Generator to calculate iterate over
-    """
-    # TODO get these from dbc_geometry
-    water_surface_elev_min = 0.5
+class BoundaryConditionSolver:
 
-    water_surface_elev = water_surface_elev_min
+    def __init__(self,
+                 historical_streamflow,
+                 dbc_geometry,
+                 streambed_roughness,
+                 slope):
 
-    water_surface_elev_max = 20.0
+        self.q_hist = historical_streamflow
+        self.geom = dbc_geometry
+        self.n = streambed_roughness
+        self.slope = slope
 
-    while water_surface_elev < water_surface_elev_max:
+    def solve(self):
 
-        yield StreamflowTuple(
-            water_surface_elev,
-            _calculate_streamflow(
-                dbc_geometry, streambed_roughness, water_surface_elev
-            )
+        def _streamflow_error(ws_elev):
+
+            calc =\
+                _calculate_streamflow(self.geom, self.n, ws_elev, self.slope)
+
+            return abs(calc - self.q_hist)
+
+        # generate initial guesses with wide-spaced points
+        result = minimize_scalar(_streamflow_error,
+                                 bounds=(self.geom.z.min(), self.geom.z.max()),
+                                 method='bounded',
+                                 options={'xatol': 1e-6, 'maxiter': 1000})
+
+        return BoundaryConditionResult(
+            result.x,
+            _calculate_streamflow(self.geom, self.n, result.x, self.slope),
+            result.fun,
+            result.success
         )
-
-        water_surface_elev += water_surface_step
 
 
 StreamflowTuple = namedtuple('StreamflowTuple', ['ws_elev', 'streamflow'])
@@ -235,9 +238,6 @@ def _get_ws_location(water_surface_elev, zmax, zmin):
         return 'triangle'
     else:
         return 'below'
-
-
-# _get_ws_location = np.vectorize(_get_ws_location_one)
 
 
 class BoundaryCondition:
