@@ -1,11 +1,65 @@
 # vw-RipCAS-DFLOW
 
-Functions for running our Riparian Community Alteration and Succession model, RipCAS, and D-FLOW coupled. 
+Functions for running our Riparian Community Alteration and Succession model, RipCAS, and D-FLOW coupled.
 We are still in the process of changing names from casimir -> ripcas as we move from the [CASiMiR vegetation model, which is closed-source and windows-only](www.casimir-software.de/ENG/veg_eng.html)
 
 First we show some use instructions then installation instructions.
 
 # Usage
+
+## API usage
+
+### Boundary Condition Solver
+
+We provide a solver for boundary conditions which can be used as follows. There
+is some data in the `data/` directory that we use.
+
+The boundary condition we have to calculate is actually an inverse problem. We
+are given the peak flow for a given year, but we don't know what the elevation
+of the water surface (WS elevation) is at the bottom of the reach under consideration. DFLOW
+needs this as a boundary condition, as well as the streamflow that is associated
+with the WS elevation, or just WS for short. We use
+[scipy.minimize_scalar](http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize_scalar.html)
+to accomplish this inverse problem. See the
+[source code](https://github.com/VirtualWatershed/vw-ripcas-dflow/blob/master/ripcas_dflow/modelrun.py#L357)
+for more details.
+
+```python
+from dflow_casimir import BoundaryConditionSovler, Pol
+
+# these are variables we would probably read from a file
+target_streamflow = 89.55  # the first value in data/peak.txt
+streambed_roughness = 0.04  # empirical n value
+reach_slope = 0.001
+
+# use our Pol (polygon) object used for xyz/polygon file dialects of interest
+geometry = Pol.from_river_geometry_file('data/DBC_geometry.xyz')
+
+bc_solver = BoundaryConditionSover(target_streamflow,
+                                   geometry,
+                                   streambed_roughness,
+                                   reach_slope)
+
+bc_solution = bc_solver.solve()
+
+print bc_solution
+```
+
+Will yield the `BoundaryConditionResult` printing
+
+```
+BoundaryConditionResult(ws_elev=1777.3393782057494,
+streamflow=89.549822073608453, error=0.00017792639154379231, success=True)
+```
+
+which shows that for the given streamflow of 89.55 cubic meters per second,
+the WS elevation is 1777.3394 meters. The absolute error between calculated
+streamflow (89.549822...) and observed streamflow is 0.0002, or 0.0002/98.55 =
+2.03e-6.
+
+
+
+## Command-line scripts
 
 To get the first .pol of n-values for use in the first D-FLOW run, use the
 `jemez/veg2npol.py` script. For example, if the vegetation ESRI .asc is

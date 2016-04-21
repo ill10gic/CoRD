@@ -13,11 +13,13 @@ Date:
     19 April 2016
 """
 import numpy as np
+import os
+import shutil
 
 from collections import namedtuple
 from scipy.optimize import minimize_scalar
 
-from ripcas_dflow import Pol
+from ripcas_dflow import Pol, ripcas, shear_mesh_to_asc, veg2n
 
 
 class ModelRun(object):
@@ -27,16 +29,19 @@ class ModelRun(object):
     initial vegetation map for DFLOW. For now, assume that the vegetation map
     is provided to the run_dflow method.
     """
-    def __init__(self):
+    def __init__(self, vegetation_ascii_path):
 
         # have the boundary conditions been found?
         self.bc_converged = False
 
         # has ripcas been run yet?
+        self.vegetation_ascii = ESRIAsc(vegetation_ascii_path)
         self.ripcas_has_run = False
+        self.ripcas_directory = None
 
         # has dflow?
         self.dflow_has_run = False
+        self.dflow_directory = None
 
         self.upstream_bc = None
         self.downstream_bc = None
@@ -70,8 +75,29 @@ class ModelRun(object):
 
             return
 
-    def run_dflow(self):
+    def run_dflow(self, dflow_directory, vegetation_input, clobber=True,
+                  pbs_script_name='dflow_mpi.pbs', dflow_run_fun=None):
+        """
+        Both input and output dflow files will go into the dflow_directory,
+        but in input/ and output/ subdirectories.
 
+        Arguments:
+            dflow_directory (str): directory where DFLOW files should be
+                put and where the dflow_run_fun will be run from
+            vegetation_input (str): path to the input vegetation.pol file. This
+                function assumes this has already been generated in the proper
+                format b/c this seems like the best separation of
+                responsibilities.
+            clobber (bool): whether or not to overwrite dflow_directory if
+                it exists
+            pbs_script_name (str): name of .pbs script w/o directory
+            dflow_run_fun (function): argument-free function to run DFLOW.
+                Ex. `dflow_run_fun=f` where `f` defined by
+                `def f: subprocess.call(['qsub', 'dflow_mpi.pbs'])`
+
+        Returns:
+            None
+        """
         if not self.bc_converged:
             raise RuntimeError(
                 'Boundary conditions must be calculated before ' +
@@ -83,16 +109,104 @@ class ModelRun(object):
                 'DFLOW has already been run for this CoupledRun'
             )
 
+        if os.path.exists(dflow_directory):
+
+            if not clobber:
+                raise RuntimeError(
+                    'DFLOW has already been run for this CoupledRun'
+                )
+
+            shutil.rmtree(dflow_directory)
+
+        self.dflow_directory = dflow_directory
+
+        os.mkdir(dflow_directory)
+
+        # inputs_path = os.path.join(dflow_directory, 'inputs')
+        # outputs_path = os.path.join(dflow_directory, 'outputs')
+
+        # os.mkdir(inputs_path)
+        # os.mkdir(outputs_path)
+
+        # write boundary conditions to file
+        bc_up_path = os.path.join(dflow_directory, 'boundriver_up.pli')
+        bc_down_path = os.path.join(dflow_directory, 'boundriver_down.pli')
+
+        self.upstream_bc.write(bc_up_path)
+        self.downstream_bc.write(bc_down_path)
+
+        veg_path = os.path.join(dflow_directory, 'vegetation.pol')
+        ext_path = os.path.join(dflow_directory, 'jemez.ext')
+        mdu_path = os.path.join(dflow_directory, 'jemez.mdu')
+        pbs_path = os.path.join(dflow_directory, pbs_script_name)
+        output_path = os.path.join(dflow_directory, 'jemez_r02_map.nc')
+
+        with open(ext_path) as f:
+            s = open('data/template.ext', 'r').read()
+            f.write(s)
+
+        with open(mdu_path) as f:
+            s = open('data/template.mdu', 'r').read()
+            f.write(s)
+
+        with open(pbs_path) as f:
+            s = open('data/dflow_mpi.pbs', 'r').read()
+            f.write(s)
+
+        shutil.copyfile(vegetation_input, veg_path)
+
+        os.chdir(dflow_directory)
+
+        if dflow_run_fun is None:
+
+            print '\n*****\nDry Run of DFLOW\n*****\n'
+
+            if os.path.exists('jemez_r02_map.nc'):
+                shutil.copyfile('jemez_r02_map.nc', output_path)
+
+            else:
+                print 'Get you a copy of a DFLOW output, yo! ' +\
+                      'Can\'t run RipCAS without it!'
+
+                with open('not_actually_output.nc', 'w') as f:
+                    f.write('A FAKE NETCDF!!!')
+        else:
+
+            dflow_run_fun()
+
         self.dflow_has_run = True
 
         return
 
-    def run_ripcas(self):
+    def run_ripcas(self, zone_map_path, ripcas_required_data_path,
+                   ripcas_output_directory):
 
         if not self.dflow_has_run:
             raise RuntimeError(
                 'DFLOW must run before ripcas can be run'
             )
+
+        hdr = self.vegetation_ascii.header_dict
+
+        shear_asc = shear_mesh_to_asc(self.vegetation_ascii, hdr)
+
+        output_veg_ascii = ripcas(
+            self.vegetation_ascii, zone_map_path,
+            shear_asc, ripcas_required_data_path
+        )
+
+        output_vegetation_path = os.path.join(
+            ripcas_output_directory, 'vegetation.asc'
+        )
+        output_veg_ascii.write(output_vegetation_path)
+
+        output_roughness_path = os.path.join(
+            ripcas_output_directory, 'roughness_map.pol'
+        )
+
+        Pol.from_ascii(
+            veg2n(output_veg_ascii)
+        ).write(output_roughness_path)
 
         self.ripcas_has_run = True
 
