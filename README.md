@@ -55,7 +55,7 @@ streamflow=89.549822073608453, error=0.00017792639154379231, success=True)
 which shows that for the given streamflow of 89.55 cubic meters per second,
 the WS elevation is 1777.3394 meters. The absolute error between calculated
 streamflow (89.549822...) and observed streamflow is 0.0002, or a relative error of
-0.0002/98.55 = 2.03e-6.
+0.0002/89.55 = 2.03e-6.
 
 
 
