@@ -353,7 +353,7 @@ class Pol:
     @classmethod
     def from_ascii(cls, asc):
         """
-        generate a polygon file from ESRIAsc
+        Generate a polygon file from ESRIAsc
         """
         assert isinstance(asc, ESRIAsc), "asc input must be ESRIAsc"
 
@@ -403,18 +403,14 @@ class Pol:
 
                 # weird, but apparently what DFLOW requires
                 f.write(' '*4 + str(len(self.x)) + ' '*5 + '3\n')
-
-                f.write(
-                    '\n'.join(
-                        [
-                            ' '*3 + (' '*3).join(
-                                ["{:1.7e}".format(val) for val in el]
-                            )
-                            for el in zip(self.x, self.y, self.z)
-                        ]
-                    ) +
-                    '\n'
+                lines = (
+                    ' '*3 + (' '*3).join(["{:1.7e}".format(val) for val in el])
+                    for el in zip(self.x, self.y, self.z)
                 )
+
+                for l in lines:
+                    f.write(l + '\n')
+
         else:
             raise Exception("Trying to write an incomplete polygon file")
 

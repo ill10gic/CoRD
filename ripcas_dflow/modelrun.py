@@ -19,7 +19,7 @@ import shutil
 from collections import namedtuple
 from scipy.optimize import minimize_scalar
 
-from ripcas_dflow import Pol, ripcas, shear_mesh_to_asc, veg2n
+from ripcas_dflow import ESRIAsc, Pol, ripcas, shear_mesh_to_asc, veg2n
 
 
 class ModelRun(object):
@@ -29,53 +29,44 @@ class ModelRun(object):
     initial vegetation map for DFLOW. For now, assume that the vegetation map
     is provided to the run_dflow method.
     """
-    def __init__(self, vegetation_ascii_path):
+    def __init__(self):  # , vegetation_ascii_path):
 
         # have the boundary conditions been found?
         self.bc_converged = False
 
         # has ripcas been run yet?
-        self.vegetation_ascii = ESRIAsc(vegetation_ascii_path)
+        self.vegetation_ascii = None
         self.ripcas_has_run = False
         self.ripcas_directory = None
 
-        # has dflow?
         self.dflow_has_run = False
         self.dflow_directory = None
+        self.dflow_shear_output = None
 
-        self.upstream_bc = None
-        self.downstream_bc = None
+        self.upstream_bc = BoundaryCondition()
+        self.downstream_bc = BoundaryCondition()
+        self.bc_solution_info = BoundarySolutionInfo()
 
     def calculate_bc(self, target_streamflow,
                      dbc_geometry_file, streambed_roughness, slope):
 
-        try:
-            dbc_geometry = Pol.from_river_geometry_file(dbc_geometry_file)
+        dbc_geometry = Pol.from_river_geometry_file(dbc_geometry_file)
 
-            bc_solver = BoundaryConditionSolver(
-                dbc_geometry, streambed_roughness,
-                slope, target_streamflow
-            )
+        bc_solver = BoundaryConditionSolver(
+            target_streamflow, dbc_geometry, streambed_roughness, slope
+        )
 
-            bc_solution = bc_solver.solve()
+        bc_solution = bc_solver.solve()
 
-            if not bc_solution.success:
-                self.bc_converged = False
-                return
+        self.bc_solution_info = bc_solution
 
-            self.downstream_bc.amplitude = bc_solution.ws_elev
+        self.bc_converged = bc_solution.success
 
-            self.upstream_bc.amplitude = bc_solution.streamflow
+        self.downstream_bc.amplitude = bc_solution.ws_elev
 
-            return
+        self.upstream_bc.amplitude = bc_solution.streamflow
 
-        except:
-
-            self.process_state = 'boundary condition calculation failed'
-
-            return
-
-    def run_dflow(self, dflow_directory, vegetation_input, clobber=True,
+    def run_dflow(self, dflow_directory, vegetation_map, clobber=True,
                   pbs_script_name='dflow_mpi.pbs', dflow_run_fun=None):
         """
         Both input and output dflow files will go into the dflow_directory,
@@ -84,7 +75,7 @@ class ModelRun(object):
         Arguments:
             dflow_directory (str): directory where DFLOW files should be
                 put and where the dflow_run_fun will be run from
-            vegetation_input (str): path to the input vegetation.pol file. This
+            vegetation_map (str): path to the input vegetation.pol file. This
                 function assumes this has already been generated in the proper
                 format b/c this seems like the best separation of
                 responsibilities.
@@ -135,34 +126,42 @@ class ModelRun(object):
         self.upstream_bc.write(bc_up_path)
         self.downstream_bc.write(bc_down_path)
 
+        self.vegetation_ascii = ESRIAsc(vegetation_map)
+
         veg_path = os.path.join(dflow_directory, 'vegetation.pol')
+        Pol.from_ascii(
+            veg2n(self.vegetation_ascii, 'data/casimir-data-requirements.xlsx')
+        ).write(veg_path)
+
         ext_path = os.path.join(dflow_directory, 'jemez.ext')
         mdu_path = os.path.join(dflow_directory, 'jemez.mdu')
         pbs_path = os.path.join(dflow_directory, pbs_script_name)
-        output_path = os.path.join(dflow_directory, 'jemez_r02_map.nc')
+        self.dflow_shear_output =\
+            os.path.join(dflow_directory, 'jemez_r02_map.nc')
 
-        with open(ext_path) as f:
+        with open(ext_path, 'w') as f:
             s = open('data/template.ext', 'r').read()
             f.write(s)
 
-        with open(mdu_path) as f:
+        with open(mdu_path, 'w') as f:
             s = open('data/template.mdu', 'r').read()
             f.write(s)
 
-        with open(pbs_path) as f:
+        with open(pbs_path, 'w') as f:
             s = open('data/dflow_mpi.pbs', 'r').read()
             f.write(s)
 
-        shutil.copyfile(vegetation_input, veg_path)
-
+        bkdir = os.getcwd()
         os.chdir(dflow_directory)
 
         if dflow_run_fun is None:
 
             print '\n*****\nDry Run of DFLOW\n*****\n'
 
-            if os.path.exists('jemez_r02_map.nc'):
-                shutil.copyfile('jemez_r02_map.nc', output_path)
+            os.chdir(bkdir)
+            example_shear_path = 'jemez_r02_map.nc'
+            if os.path.exists(example_shear_path):
+                shutil.copyfile(example_shear_path, self.dflow_shear_output)
 
             else:
                 print 'Get you a copy of a DFLOW output, yo! ' +\
@@ -173,22 +172,36 @@ class ModelRun(object):
         else:
 
             dflow_run_fun()
+            os.chdir(bkdir)
 
         self.dflow_has_run = True
 
         return
 
     def run_ripcas(self, zone_map_path, ripcas_required_data_path,
-                   ripcas_output_directory):
+                   ripcas_directory, clobber=True):
 
         if not self.dflow_has_run:
             raise RuntimeError(
                 'DFLOW must run before ripcas can be run'
             )
 
-        hdr = self.vegetation_ascii.header_dict
+        if os.path.exists(ripcas_directory):
 
-        shear_asc = shear_mesh_to_asc(self.vegetation_ascii, hdr)
+            if not clobber:
+                raise RuntimeError(
+                    'DFLOW has already been run for this CoupledRun'
+                )
+
+            shutil.rmtree(ripcas_directory)
+
+        self.ripcas_directory = ripcas_directory
+
+        os.mkdir(ripcas_directory)
+
+        hdr = self.vegetation_ascii.header_dict()
+
+        shear_asc = shear_mesh_to_asc(self.dflow_shear_output, hdr)
 
         output_veg_ascii = ripcas(
             self.vegetation_ascii, zone_map_path,
@@ -196,26 +209,19 @@ class ModelRun(object):
         )
 
         output_vegetation_path = os.path.join(
-            ripcas_output_directory, 'vegetation.asc'
+            ripcas_directory, 'vegetation.asc'
         )
         output_veg_ascii.write(output_vegetation_path)
-
-        output_roughness_path = os.path.join(
-            ripcas_output_directory, 'roughness_map.pol'
-        )
-
-        Pol.from_ascii(
-            veg2n(output_veg_ascii)
-        ).write(output_roughness_path)
 
         self.ripcas_has_run = True
 
         return
 
 
-BoundaryConditionResult = namedtuple(
-    'BoundaryConditionResult', ['ws_elev', 'streamflow', 'error', 'success']
+BoundarySolutionInfo = namedtuple(
+    'BoundarySolutionInfo', ['ws_elev', 'streamflow', 'error', 'success']
 )
+BoundarySolutionInfo.__new__.__defaults__ = (None, None, None, None)
 
 
 class BoundaryConditionSolver:
@@ -246,7 +252,7 @@ class BoundaryConditionSolver:
                                  method='bounded',
                                  options={'xatol': 1e-6, 'maxiter': 1000})
 
-        return BoundaryConditionResult(
+        return BoundarySolutionInfo(
             result.x,
             _calculate_streamflow(self.geom, self.n, result.x, self.slope),
             result.fun,
@@ -368,7 +374,10 @@ class BoundaryCondition:
     def write(self, out_path):
 
         with open(out_path, 'w') as f:
-            f.writelines([
+            f.write(self.__repr__())
+
+    def __repr__(self):
+        return '\n'.join([
                 '* COLUMN=3',
                 '* COLUMN1=Period (min) or Astronomical Componentname',
                 '* COLUMN2=Amplitude (ISO)',
