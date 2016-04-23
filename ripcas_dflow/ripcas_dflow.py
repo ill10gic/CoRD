@@ -208,10 +208,11 @@ def veg2n(veg_map, ripcas_required_data):
         zip(cas_df['Code.1'], cas_df['n_val'])
     )
 
-    # still called veg_map so we don't have to copy
-    veg_map.data.replace(veg2n_dict, inplace=True)
+    ret = copy.deepcopy(veg_map)
 
-    return veg_map
+    ret.data = veg_map.data.replace(veg2n_dict)
+
+    return ret
 
 
 class ESRIAsc:

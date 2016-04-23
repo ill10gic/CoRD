@@ -129,6 +129,7 @@ class ModelRun(object):
         self.vegetation_ascii = ESRIAsc(vegetation_map)
 
         veg_path = os.path.join(dflow_directory, 'vegetation.pol')
+
         Pol.from_ascii(
             veg2n(self.vegetation_ascii, 'data/casimir-data-requirements.xlsx')
         ).write(veg_path)
@@ -215,7 +216,7 @@ class ModelRun(object):
 
         self.ripcas_has_run = True
 
-        return
+        return output_veg_ascii
 
 
 BoundarySolutionInfo = namedtuple(
