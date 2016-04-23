@@ -1,7 +1,7 @@
 # vw-RipCAS-DFLOW
 
 Functions for running our Riparian Community Alteration and Succession model, RipCAS, and D-FLOW coupled.
-We are still in the process of changing names from casimir -> ripcas as we move from the [CASiMiR vegetation model, which is closed-source and windows-only](www.casimir-software.de/ENG/veg_eng.html)
+We are still in the process of changing names from casimir -> ripcas as we move from the [CASiMiR vegetation model, which is closed-source and windows-only](www.casimir-software.de/ENG/veg_eng.html) to our own open-source version, [RipCAS](https://github.com/VirtualWatershed/vw-ripcas-dflow/blob/master/ripcas_dflow/ripcas_dflow.py#L54).
 
 First we show some use instructions then installation instructions.
 
@@ -15,7 +15,9 @@ Here is an example of using the ModelRun class to set up and execute the coupled
 DFLOW/RipCAS model:
 
 ```python
-from ripcas_dflow import ModelRun
+import matplotlib.pyplot as plt
+
+from ripcas_dflow import ModelRun, veg2n
 
 mr = ModelRun()
 
@@ -32,10 +34,17 @@ assert mr.bc_converged
 
 mr.run_dflow('data/dflow-test/', 'data/vegclass_2z.asc')
 
+# the output is an ESRIAsc map of vegetation type (coded integer)
 out = mr.run_ripcas('data/zonemap_2z.asc', 'data/casimir-data-requirements.xlsx', 'data/ripcas-test')
 
-plt.matshow(out.as_matrix(replace_nodata_val=0.0))
+# translate to Manning's roughness map, which shows communities a little better
+n_out = veg2n(out)
+
+plt.matshow(n_out.as_matrix(replace_nodata_val=0.0))
+plt.colorbar()
 ```
+
+![An example map](example_n_map.png)
 
 ### Boundary Condition Solver
 
