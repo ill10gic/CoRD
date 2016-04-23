@@ -9,6 +9,34 @@ First we show some use instructions then installation instructions.
 
 ## API usage
 
+### Coupled ModelRun
+
+Here is an example of using the ModelRun class to set up and execute the coupled
+DFLOW/RipCAS model:
+
+```python
+from ripcas_dflow import ModelRun
+
+mr = ModelRun()
+
+# assume we have read these from a file or elsewhere; set them here for ex
+peak_flow = 89.55
+streambed_roughness = 0.04
+reach_slope = 0.001
+
+geometry = Pol.from_river_geometry_file('data/DBC_geometry.xyz')
+
+mr.calculate_bc(peak_flow, geometry, streambed_roughness, reach_slope)
+
+assert mr.bc_converged
+
+mr.run_dflow('data/dflow-test/', 'data/vegclass_2z.asc')
+
+out = mr.run_ripcas('data/zonemap_2z.asc', 'data/casimir-data-requirements.xlsx', 'data/ripcas-test')
+
+plt.matshow(out.as_matrix(replace_nodata_val=0.0))
+```
+
 ### Boundary Condition Solver
 
 We provide a solver for boundary conditions which can be used as follows. There
