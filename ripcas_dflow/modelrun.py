@@ -49,7 +49,22 @@ class ModelRun(object):
 
     def calculate_bc(self, target_streamflow,
                      dbc_geometry_file, streambed_roughness, slope):
+        """
 
+        Arguments:
+            target_streamflow (float): historical or other streamflow that
+                will be used to drive DFLOW model; this calculation recovers
+                an estimate for the Water Surface elevation (WS) for this given
+                streamflow.
+            dbc_geometry_file (str): path to the stream's cross-sectional
+                geometry xyz file
+            streambed_roughness (float): Manning's n-value for the streambed
+            slope (float): slope taken for the reach
+
+        Returns:
+            (BoundaryCondition, BoundaryCondition): tuple of upstream and
+                downstream BoundaryCondition instances
+        """
         dbc_geometry = Pol.from_river_geometry_file(dbc_geometry_file)
 
         bc_solver = BoundaryConditionSolver(
@@ -65,6 +80,8 @@ class ModelRun(object):
         self.downstream_bc.amplitude = bc_solution.ws_elev
 
         self.upstream_bc.amplitude = bc_solution.streamflow
+
+        return (self.upstream_bc, self.downstream_bc)
 
     def run_dflow(self, dflow_directory, vegetation_map, clobber=True,
                   pbs_script_name='dflow_mpi.pbs', dflow_run_fun=None):
@@ -180,7 +197,7 @@ class ModelRun(object):
         return
 
     def run_ripcas(self, zone_map_path, ripcas_required_data_path,
-                   ripcas_directory, clobber=True):
+                   ripcas_directory, shear_asc=None, clobber=True):
 
         if not self.dflow_has_run:
             raise RuntimeError(
@@ -202,7 +219,11 @@ class ModelRun(object):
 
         hdr = self.vegetation_ascii.header_dict()
 
-        shear_asc = shear_mesh_to_asc(self.dflow_shear_output, hdr)
+        if shear_asc is None:
+            shear_asc = shear_mesh_to_asc(self.dflow_shear_output, hdr)
+        else:
+            assert isinstance(shear_asc, ESRIAsc),\
+                'shear_asc must be of type ESRIAsc if provided'
 
         output_veg_ascii = ripcas(
             self.vegetation_ascii, zone_map_path,
