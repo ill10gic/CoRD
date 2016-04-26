@@ -165,3 +165,23 @@ Ran 4 tests in 0.384s
 
 OK
 ```
+
+## Developer Notes
+
+### Files required for a DFLOW run
+
+There are quite a few files required for a DFLOW run. Here we have a table
+of what input files are required and where the requirement is defined.
+
+
+|                    File | Where Used/Other notes               | Needs to be generated at each timestep? |
+|------------------------:|--------------------------------------|:---------------------------------------:|
+|           dflow_mpi.pbs | Job script submitted via qsub        |                    No                   |
+|      boundriverdown.pli | jemez_r02_boundary.ext               |                    No                   |
+|       boundriver_up.pli | jemez_r02_boundary.ext               |                    No                   |
+| boundriverdown_0001.cmp | ??? dflow automatically detected ??? |                   Yes                   |
+|  boundriver_up_0001.cmp | ??? dflow automatically detected???  |                   Yes                   |
+|  jemez_r02_boundary.ext | jem1.mdu                             |                    No                   |
+|         (initial)_n.pol | jemez_r02_boundary.ext               |                   Yes                   |
+|                jem1.mdu | dflow_mpi.pbs                        |                    No                   |
+|         jem1_fin_net.nc | jem1.mdu                             |                    No                   |
