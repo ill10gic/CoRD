@@ -5,10 +5,12 @@
 ##                            at The University of New Mexico
 
 #PBS -lnodes=1:ppn=8
-#PBS -lwalltime=12:00:00
+#PBS -lwalltime=08:00:00
 #PBS -S /bin/bash
+#PBS -o pbs.out
+#PBS -e pbs.err
 
-INPUT_FILE=jemez.mdu
+INPUT_FILE=base.mdu
 
 # Load the environment modules system
 source /etc/profile.d/modules.sh
