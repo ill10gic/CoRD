@@ -142,13 +142,30 @@ class TestModelRun(unittest.TestCase):
         DFLOW create the proper directory and populate with required inputs
         """
         self.mr.bc_converged = True
-        self.mr.run_dflow(os.path.join(self.tmpdir, 'dflow-test'),
-                          'test/data/vegcode.asc')
+        d = os.path.join(self.tmpdir, 'dflow-test')
+        self.mr.run_dflow(d, 'test/data/vegcode.asc')
 
-        assert os.path.exists(os.path.join(self.tmpdir, 'dflow-test'))
+        assert os.path.exists(d)
+        # there are six required files that should have been copied to the
+        # dflow directory. vegcode.asc should have been translated
+        # to n.pol and written to this directory. The two boundary
+        # condition files should also have been written to the
+        # directory
 
-        # TODO add more checks for files that should be there.. translate
-        # dflow checklist from Angela
+        def ex(f):
+            return os.path.exists(os.path.join(d, f))
+
+        assert ex('dflow_mpi.pbs')
+        assert ex('base.mdu')
+        assert ex('base_net.nc')
+        assert ex('base.ext')
+        assert ex('boundriverdown.pli')
+        assert ex('boundriver_up.pli')
+        assert ex('boundriverdown_0001.cmp')
+        assert ex('boundriver_up_0001.cmp')
+
+        assert ex('n.pol')
+
         assert self.mr.dflow_has_run
 
     def test_run_ripcas(self):

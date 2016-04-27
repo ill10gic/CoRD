@@ -137,36 +137,55 @@ class ModelRun(object):
         # os.mkdir(outputs_path)
 
         # write boundary conditions to file
-        bc_up_path = os.path.join(dflow_directory, 'boundriver_up.pli')
-        bc_down_path = os.path.join(dflow_directory, 'boundriver_down.pli')
+        bc_up_path = os.path.join(dflow_directory, 'boundriver_up_0001.cmp')
+        bc_down_path = os.path.join(dflow_directory, 'boundriverdown_0001.cmp')
 
         self.upstream_bc.write(bc_up_path)
         self.downstream_bc.write(bc_down_path)
 
         self.vegetation_ascii = ESRIAsc(vegetation_map)
 
-        veg_path = os.path.join(dflow_directory, 'vegetation.pol')
+        veg_path = os.path.join(dflow_directory, 'n.pol')
 
         Pol.from_ascii(
-            veg2n(self.vegetation_ascii, 'data/ripcas_inputs/ripcas-data-requirements.xlsx')
+            veg2n(self.vegetation_ascii,
+                  'data/ripcas_inputs/ripcas-data-requirements.xlsx')
         ).write(veg_path)
 
-        ext_path = os.path.join(dflow_directory, 'jemez.ext')
-        mdu_path = os.path.join(dflow_directory, 'jemez.mdu')
-        pbs_path = os.path.join(dflow_directory, pbs_script_name)
+        oj = os.path.join
+
+        pbs_path = oj(dflow_directory, pbs_script_name)
+        mdu_path = oj(dflow_directory, 'base.mdu')
+        net_path = oj(dflow_directory, 'base_net.nc')
+        ext_path = oj(dflow_directory, 'base.ext')
+        brd_path = oj(dflow_directory, 'boundriverdown.pli')
+        bru_path = oj(dflow_directory, 'boundriver_up.pli')
+
         self.dflow_shear_output =\
             os.path.join(dflow_directory, 'jemez_r02_map.nc')
 
-        with open(ext_path, 'w') as f:
-            s = open('data/dflow_inputs/base.ext', 'r').read()
+        with open(pbs_path, 'w') as f:
+            s = open('data/dflow_inputs/dflow_mpi.pbs', 'r').read()
             f.write(s)
 
         with open(mdu_path, 'w') as f:
             s = open('data/dflow_inputs/base.mdu', 'r').read()
             f.write(s)
 
-        with open(pbs_path, 'w') as f:
-            s = open('data/dflow_inputs/dflow_mpi.pbs', 'r').read()
+        with open(net_path, 'w') as f:
+            s = open('data/dflow_inputs/base_net.nc', 'r').read()
+            f.write(s)
+
+        with open(ext_path, 'w') as f:
+            s = open('data/dflow_inputs/base.ext', 'r').read()
+            f.write(s)
+
+        with open(brd_path, 'w') as f:
+            s = open('data/dflow_inputs/boundriverdown.pli', 'r').read()
+            f.write(s)
+
+        with open(bru_path, 'w') as f:
+            s = open('data/dflow_inputs/boundriver_up.pli', 'r').read()
             f.write(s)
 
         bkdir = os.getcwd()
