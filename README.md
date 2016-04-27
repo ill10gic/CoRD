@@ -177,11 +177,11 @@ of what input files are required and where the requirement is defined.
 |                    File | Where Used/Other notes               | Needs to be generated at each timestep? |
 |------------------------:|--------------------------------------|:---------------------------------------:|
 |           dflow_mpi.pbs | Job script submitted via qsub        |                    No                   |
-|      boundriverdown.pli | jemez_r02_boundary.ext               |                    No                   |
-|       boundriver_up.pli | jemez_r02_boundary.ext               |                    No                   |
+|      boundriverdown.pli | base.ext                             |                    No                   |
+|       boundriver_up.pli | base.ext                             |                    No                   |
 | boundriverdown_0001.cmp | ??? dflow automatically detected ??? |                   Yes                   |
 |  boundriver_up_0001.cmp | ??? dflow automatically detected???  |                   Yes                   |
-|  jemez_r02_boundary.ext | jem1.mdu                             |                    No                   |
-|         (initial)_n.pol | jemez_r02_boundary.ext               |                   Yes                   |
-|                jem1.mdu | dflow_mpi.pbs                        |                    No                   |
-|         jem1_fin_net.nc | jem1.mdu                             |                    No                   |
+|               base.ext  | base.mdu                             |                    No                   |
+|         (initial)_n.pol | base.ext                             |                   Yes                   |
+|               base.mdu  | dflow_mpi.pbs                        |                    No                   |
+|         base_net.nc     | base.mdu                             |                    No                   |
