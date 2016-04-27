@@ -469,16 +469,16 @@ Usage:
     ripcas_required_data = sys.argv[4]
     peak_flows_file = sys.argv[5]
     geometry_file = sys.argv[6]
-    streambed_roughness = sys.argv[7]
-    streambed_slope = sys.argv[8]
+    streambed_roughness = float(sys.argv[7])
+    streambed_slope = float(sys.argv[8])
 
     ta = time.asctime
-    log_f = open(data_dir + '.log', 'w')
+    log_f = open(data_dir.replace('/', '-')[1:] + '.log', 'w')
 
     with open(peak_flows_file, 'r') as f:
-        l0 = f.next()
-        assert l0 == 'Peak.Flood'
-        peak_flows = [float(l) for l in f.readlines()]
+        l0 = f.readline().strip()
+        assert l0 == 'Peak.Flood', '{} not Peak.Flood'.format(l0)
+        peak_flows = [float(l.strip()) for l in f.readlines()]
 
     def dflow_fun():
 
@@ -499,9 +499,11 @@ Usage:
 
         log_f.write(
             '[{0}] Boundary conditions for flow index {1} finished\n'.format(
-                ta, flow_idx
+                ta(), flow_idx
             )
         )
+        log_f.flush()
+        os.fsync(log_f.fileno())
 
         dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
 
@@ -521,6 +523,8 @@ Usage:
                 ta(), job_id, flow_idx
             )
         )
+        log_f.flush()
+        os.fsync(log_f.fileno())
 
         job_not_finished = True
         while job_not_finished:
@@ -530,32 +534,37 @@ Usage:
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
 
-            job_not_finished = p.poll() > 0
+            p.communicate()
+
+            poll = p.poll()
+            job_not_finished = poll == 0
 
             log_f.write(
-                '[{0}] Job ID {1} not yet finished for DFLOW run {2}\n'.format(
-                    ta(), job_id, flow_idx
+                '[{0}] Job ID {1} not yet finished ({3}, {4}) for DFLOW run {2}\n'.format(
+                    ta(), job_id, flow_idx, job_not_finished, poll
                 )
             )
+            log_f.flush()
+            os.fsync(log_f.fileno())
 
             time.sleep(60)
 
         log_f.write('[{0}] DFLOW run {1} finished, starting RipCAS\n'.format(
-            ta, flow_idx
+            ta(), flow_idx
             )
         )
         log_f.flush()
-        os.fsync()
+        os.fsync(log_f.fileno())
 
         ripcas_dir = os.path.join(data_dir, 'ripcas-' + str(flow_idx))
 
         mr.run_ripcas(vegzone_map, ripcas_required_data, ripcas_dir)
 
         log_f.write('[{0}] RipCAS run {1} finished\n'.format(
-            ta, flow_idx
+            ta(), flow_idx
             )
         )
         log_f.flush()
-        os.fsync()
+        os.fsync(log_f.fileno())
 
     log_f.close()
