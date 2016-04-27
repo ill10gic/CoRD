@@ -148,7 +148,7 @@ class ModelRun(object):
         veg_path = os.path.join(dflow_directory, 'vegetation.pol')
 
         Pol.from_ascii(
-            veg2n(self.vegetation_ascii, 'data/casimir-data-requirements.xlsx')
+            veg2n(self.vegetation_ascii, 'data/ripcas_inputs/ripcas-data-requirements.xlsx')
         ).write(veg_path)
 
         ext_path = os.path.join(dflow_directory, 'jemez.ext')
@@ -158,15 +158,15 @@ class ModelRun(object):
             os.path.join(dflow_directory, 'jemez_r02_map.nc')
 
         with open(ext_path, 'w') as f:
-            s = open('data/template.ext', 'r').read()
+            s = open('data/dflow_inputs/base.ext', 'r').read()
             f.write(s)
 
         with open(mdu_path, 'w') as f:
-            s = open('data/template.mdu', 'r').read()
+            s = open('data/dflow_inputs/base.mdu', 'r').read()
             f.write(s)
 
         with open(pbs_path, 'w') as f:
-            s = open('data/dflow_mpi.pbs', 'r').read()
+            s = open('data/dflow_inputs/dflow_mpi.pbs', 'r').read()
             f.write(s)
 
         bkdir = os.getcwd()

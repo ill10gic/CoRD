@@ -57,7 +57,7 @@ METHOD=3
 OPERAND=O
 
 QUANTITY=frictioncoefficient
-FILENAME=roughness_map.pol
+FILENAME=n.pol
 FILETYPE=10
 METHOD=4
 OPERAND=O

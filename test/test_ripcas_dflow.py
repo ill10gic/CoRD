@@ -125,7 +125,7 @@ class TestModelRun(unittest.TestCase):
         Calculate a series of boundary conditions for the range we'll see
         """
         # geometry = Pol.from_river_geometry_file('data/DBC_geometry.xyz')
-        geometry = 'data/DBC_geometry.xyz'
+        geometry = 'data/dflow_inputs/DBC_geometry.xyz'
         roughness = 0.04
         reach_slope = 0.001
 
