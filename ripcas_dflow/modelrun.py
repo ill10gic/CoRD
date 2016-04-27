@@ -15,6 +15,8 @@ Date:
 import numpy as np
 import os
 import shutil
+import subprocess
+import time
 
 from collections import namedtuple
 from scipy.optimize import minimize_scalar
@@ -206,14 +208,18 @@ class ModelRun(object):
 
                 with open('not_actually_output.nc', 'w') as f:
                     f.write('A FAKE NETCDF!!!')
+
+            self.dflow_has_run = True
+
         else:
 
-            dflow_run_fun()
+            # in the case of running a process on CARC, the ret is a Popen inst
+            ret = dflow_run_fun()
+
             os.chdir(bkdir)
+            self.dflow_has_run = True
 
-        self.dflow_has_run = True
-
-        return
+            return ret
 
     def run_ripcas(self, zone_map_path, ripcas_required_data_path,
                    ripcas_directory, shear_asc=None, clobber=True):
@@ -427,10 +433,129 @@ class BoundaryCondition:
             ])
 
 
-class ExtFile:
+if __name__ == '__main__':
 
-    def __init__(self):
-        pass
+    import sys
 
-    def write(self, out_path):
-        pass
+    help_msg = '''
+modelrun.py
+
+Author: Matthew Turner
+
+Usage:
+    python ripcas_dflow/modelrun.py data_dir initial_vegetation vegzone_map ripcas_required_data\
+            peak_flows_file geometry_file streambed_roughness streambed_slope
+
+    data_dir: directory to hold each time step of the model run
+    initial_vegetation: .asc file with initial vegetation map
+    vegzone_map: .asc file with vegetation zone information
+    ripcas_required_data: .xlsx file with veg type-to-n and shear resistance-per-veg type information
+    peak_flows_file: file with a column of peak flood flow in cubic meters per second
+    geometry_file: xyz file representing geometry of downstream cross section for boundary conditions calculation
+    streambed_roughness: floating point number for the roughness value of the streambed
+    streambed_slope: floating point number for the slope of the stream geography
+'''
+    if sys.argv[1] == '-h' or sys.argv[1] == '--help':
+        print help_msg
+        sys.exit(0)
+
+    if len(sys.argv) != 9:
+        print help_msg
+        sys.exit(1)
+
+    data_dir = sys.argv[1]
+    initial_vegetation_file = sys.argv[2]
+    vegzone_map = sys.argv[3]
+    ripcas_required_data = sys.argv[4]
+    peak_flows_file = sys.argv[5]
+    geometry_file = sys.argv[6]
+    streambed_roughness = sys.argv[7]
+    streambed_slope = sys.argv[8]
+
+    ta = time.asctime
+    log_f = open(data_dir + '.log', 'w')
+
+    with open(peak_flows_file, 'r') as f:
+        l0 = f.next()
+        assert l0 == 'Peak.Flood'
+        peak_flows = [float(l) for l in f.readlines()]
+
+    def dflow_fun():
+
+        import subprocess
+
+        return subprocess.Popen(
+            'qsub dflow_mpi.pbs', shell=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+    for flow_idx, flow in enumerate(peak_flows):
+
+        mr = ModelRun()
+
+        mr.calculate_bc(
+            flow, geometry_file, streambed_roughness, streambed_slope
+        )
+
+        log_f.write(
+            '[{0}] Boundary conditions for flow index {1} finished\n'.format(
+                ta, flow_idx
+            )
+        )
+
+        dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
+
+        if flow_idx == 0:
+            veg_file = initial_vegetation_file
+        else:
+            veg_file = os.path.join(
+                data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
+            )
+
+        p_ref = mr.run_dflow(dflow_dir, veg_file, dflow_run_fun=dflow_fun)
+
+        job_id = p_ref.communicate()[0].split('.')[0]
+
+        log_f.write(
+            '[{0}] Job ID {1} submitted for DFLOW run {2}\n'.format(
+                ta(), job_id, flow_idx
+            )
+        )
+
+        job_not_finished = True
+        while job_not_finished:
+
+            p = subprocess.Popen(
+                'qstat ' + job_id, shell=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+
+            job_not_finished = p.poll() > 0
+
+            log_f.write(
+                '[{0}] Job ID {1} not yet finished for DFLOW run {2}\n'.format(
+                    ta(), job_id, flow_idx
+                )
+            )
+
+            time.sleep(60)
+
+        log_f.write('[{0}] DFLOW run {1} finished, starting RipCAS\n'.format(
+            ta, flow_idx
+            )
+        )
+        log_f.flush()
+        os.fsync()
+
+        ripcas_dir = os.path.join(data_dir, 'ripcas-' + str(flow_idx))
+
+        mr.run_ripcas(vegzone_map, ripcas_required_data, ripcas_dir)
+
+        log_f.write('[{0}] RipCAS run {1} finished\n'.format(
+            ta, flow_idx
+            )
+        )
+        log_f.flush()
+        os.fsync()
+
+    log_f.close()
