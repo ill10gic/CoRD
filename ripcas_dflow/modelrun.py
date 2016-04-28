@@ -164,7 +164,9 @@ class ModelRun(object):
         bru_path = oj(dflow_directory, 'boundriver_up.pli')
 
         self.dflow_shear_output =\
-            os.path.join(dflow_directory, 'jemez_r02_map.nc')
+            os.path.join(dflow_directory,
+                         'DFM_OUTPUT_base',
+                         'base_map.nc')
 
         with open(pbs_path, 'w') as f:
             s = open('data/dflow_inputs/dflow_mpi.pbs', 'r').read()
@@ -526,6 +528,8 @@ Usage:
         log_f.flush()
         os.fsync(log_f.fileno())
 
+        # check the status of the job by querying qstat; break loop when
+        # job no longer exists, giving nonzero poll() value
         job_not_finished = True
         while job_not_finished:
 
@@ -547,7 +551,7 @@ Usage:
             log_f.flush()
             os.fsync(log_f.fileno())
 
-            time.sleep(60)
+            time.sleep(600)
 
         log_f.write('[{0}] DFLOW run {1} finished, starting RipCAS\n'.format(
             ta(), flow_idx
