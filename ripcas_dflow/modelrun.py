@@ -202,6 +202,7 @@ class ModelRun(object):
             os.chdir(bkdir)
             example_shear_path = 'jemez_r02_map.nc'
             if os.path.exists(example_shear_path):
+                os.makedirs(os.path.dirname(self.dflow_shear_output))
                 shutil.copyfile(example_shear_path, self.dflow_shear_output)
 
             else:
@@ -435,6 +436,13 @@ class BoundaryCondition:
             ])
 
 
+def mr_log(log_f, msg):
+
+    ta = time.asctime
+    log_f.write('[{0}] '.format(ta()) + msg)
+    log_f.flush()
+    os.fsync(log_f.fileno())
+
 if __name__ == '__main__':
 
     import sys
@@ -499,13 +507,11 @@ Usage:
             flow, geometry_file, streambed_roughness, streambed_slope
         )
 
-        log_f.write(
-            '[{0}] Boundary conditions for flow index {1} finished\n'.format(
-                ta(), flow_idx
+        mr_log(
+            log_f, 'Boundary conditions for flow index {0} finished\n'.format(
+                flow_idx
             )
         )
-        log_f.flush()
-        os.fsync(log_f.fileno())
 
         dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
 
@@ -516,59 +522,56 @@ Usage:
                 data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
             )
 
-        p_ref = mr.run_dflow(dflow_dir, veg_file, dflow_run_fun=dflow_fun)
+        if __debug__:
+            mr.run_dflow(dflow_dir, veg_file)
+            job_id = 'debug'
 
-        job_id = p_ref.communicate()[0].split('.')[0]
+        else:
+            p_ref = mr.run_dflow(dflow_dir, veg_file, dflow_run_fun=dflow_fun)
+            job_id = p_ref.communicate()[0].split('.')[0]
 
-        log_f.write(
-            '[{0}] Job ID {1} submitted for DFLOW run {2}\n'.format(
-                ta(), job_id, flow_idx
+        mr_log(log_f, 'Job ID {0} submitted for DFLOW run {1}\n'.format(
+                job_id, flow_idx
             )
         )
-        log_f.flush()
-        os.fsync(log_f.fileno())
 
         # check the status of the job by querying qstat; break loop when
         # job no longer exists, giving nonzero poll() value
         job_not_finished = True
         while job_not_finished:
 
-            p = subprocess.Popen(
-                'qstat ' + job_id, shell=True,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-
-            p.communicate()
-
-            poll = p.poll()
-            job_not_finished = poll == 0
-
-            log_f.write(
-                '[{0}] Job ID {1} not yet finished ({3}, {4}) for DFLOW run {2}\n'.format(
-                    ta(), job_id, flow_idx, job_not_finished, poll
+            mr_log(
+                log_f,
+                'Job ID {0} not yet finished for DFLOW run {1}\n'.format(
+                    job_id, flow_idx
                 )
             )
-            log_f.flush()
-            os.fsync(log_f.fileno())
 
-            time.sleep(600)
+            if __debug__:
+                job_not_finished = False
 
-        log_f.write('[{0}] DFLOW run {1} finished, starting RipCAS\n'.format(
-            ta(), flow_idx
+            else:
+                p = subprocess.Popen(
+                    'qstat ' + job_id, shell=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+
+                p.communicate()
+
+                poll = p.poll()
+                job_not_finished = poll == 0
+
+                time.sleep(600)
+        mr_log(
+            log_f, 'DFLOW run {0} finished, starting RipCAS\n'.format(
+                flow_idx
             )
         )
-        log_f.flush()
-        os.fsync(log_f.fileno())
 
         ripcas_dir = os.path.join(data_dir, 'ripcas-' + str(flow_idx))
 
         mr.run_ripcas(vegzone_map, ripcas_required_data, ripcas_dir)
 
-        log_f.write('[{0}] RipCAS run {1} finished\n'.format(
-            ta(), flow_idx
-            )
-        )
-        log_f.flush()
-        os.fsync(log_f.fileno())
+        mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
 
     log_f.close()
