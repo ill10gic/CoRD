@@ -1,15 +1,67 @@
 # vw-RipCAS-DFLOW
 
-Functions for running our Riparian Community Alteration and Succession model, RipCAS, and D-FLOW coupled.
-We are still in the process of changing names from casimir -> ripcas as we move from the [CASiMiR vegetation model, which is closed-source and windows-only](www.casimir-software.de/ENG/veg_eng.html) to our own open-source version, [RipCAS](https://github.com/VirtualWatershed/vw-ripcas-dflow/blob/master/ripcas_dflow/ripcas_dflow.py#L54).
+Functions for running our Riparian Community Alteration and Succession model,
+RipCAS, and D-FLOW coupled.
+One of the major contributions of this work is a process for automatically
+submitting new DFLOW jobs to the Portable Batch System automatically, then
+running RipCAS when DFLOW has finished for that time step. Roughly the process
+proceeds as shown in the diagram below.
 
-First we show some use instructions then installation instructions.
+![simplified workflow](work_flow_simplified.png)
 
-# Usage
+The DFLOW model is the one that runs for roughly seven hours at a time and uses
+eight processors per model. We could use more cores, with an open issue (#9)
+addressing this.
 
-## API usage
 
-### Coupled ModelRun
+## Coupled ModelRun on a Cluster
+
+As it is, we can vary quite a few things and automatically run a variety of
+scenarios. One could vary the flooding by year, or change the geometry of the
+cross-section of the stream which is used in calculating the boundary
+conditions, or the user could create new vegetation type-to-n and/or vegetation
+type-to-shear resistance mappings. This is done by creating new files that match
+the structure of their counterparts in the
+[data
+directory](https://github.com/VirtualWatershed/vw-ripcas-dflow/tree/master/data).
+For example, to modify the vegetation conversion rules, one must create an Excel
+spreadsheet that matches this structure in the screenshot below.
+
+![ripcas required data screenshot](ripcas-required-data-screenshot.png)
+
+
+Example:
+
+```
+python ripcas_dflow/modelrun.py ~/ripcas-dflow-runs/100yr-every5 \
+    data/ripcas_inputs/vegclass_2z.asc data/ripcas_inputs/zonemap_2z.asc \
+    data/ripcas_inputs/ripcas-data-requirements.xlsx \
+    /users/maturner/100yrFlood_every5.txt data/dflow_inputs/DBC_geometry.xyz \
+    0.04 0.001
+```
+
+More details on the usage:
+
+```
+python ripcas_dflow/modelrun.py data_dir initial_vegetation vegzone_map ripcas_required_data\
+        peak_flows_file geometry_file streambed_roughness streambed_slope
+
+    data_dir: directory to hold each time step of the model run
+    initial_vegetation: .asc file with initial vegetation map
+    vegzone_map: .asc file with vegetation zone information
+    ripcas_required_data: .xlsx file with veg type-to-n and shear resistance-per-veg type information
+    peak_flows_file: file with a column of peak flood flow in cubic meters per second
+    geometry_file: xyz file representing geometry of downstream cross section for boundary conditions calculation
+    streambed_roughness: floating point number for the roughness value of the streambed
+    streambed_slope: floating point number for the slope of the stream geography
+```
+
+Currently this is part of a
+[raw executable in modelrun.py](https://github.com/VirtualWatershed/vw-ripcas-dflow/blob/master/ripcas_dflow/modelrun.py#L446),
+but soon this will be broken out into its own controller as we add new features.
+
+
+## Using the ModelRun class directly
 
 Here is an example of using the ModelRun class to set up and execute the coupled
 DFLOW/RipCAS model:

@@ -482,7 +482,6 @@ Usage:
     streambed_roughness = float(sys.argv[7])
     streambed_slope = float(sys.argv[8])
 
-    ta = time.asctime
     log_f = open(data_dir.replace('/', '-')[1:] + '.log', 'w')
 
     with open(peak_flows_file, 'r') as f:
