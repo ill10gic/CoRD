@@ -444,10 +444,11 @@ def mr_log(log_f, msg):
     os.fsync(log_f.fileno())
 
 
-def run_model_series(data_dir, initial_vegetation_file, vegzone_map,
-                     ripcas_required_data, peak_flows_file, geometry_file,
-                     streambed_roughness, streambed_slope, dflow_run_fun=None,
-                     log_f=None):
+def modelrun_series(data_dir, initial_vegetation_file, vegzone_map,
+                    ripcas_required_data, peak_flows_file, geometry_file,
+                    streambed_roughness, streambed_slope, dflow_run_fun=None,
+                    log_f=None, hs_sync=False, hs_username=None,
+                    hs_password=None):
 
     if dflow_run_fun is None:
 
@@ -546,8 +547,6 @@ def run_model_series(data_dir, initial_vegetation_file, vegzone_map,
     log_f.close()
 
 
-
-
 if __name__ == '__main__':
 
     import sys
@@ -587,7 +586,7 @@ Usage:
     streambed_roughness = float(sys.argv[7])
     streambed_slope = float(sys.argv[8])
 
-    run_model_series(data_dir, initial_vegetation_file, vegzone_map,
+    modelrun_series(data_dir, initial_vegetation_file, vegzone_map,
                      ripcas_required_data, peak_flows_file, geometry_file,
                      streambed_roughness, streambed_slope, dflow_run_fun=None,
                      log_f=None)

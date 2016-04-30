@@ -13,11 +13,15 @@ PEAK_FLOWS_FILE = data/peak.txt
 GEOMETRY_FILE = data/dflow_inputs/DBC_geometry.xyz
 STREAMBED_ROUGHNESS = 0.04
 STREAMBED_SLOPE = 0.001
-
-DFLOW_RUN_FUN =   # python import style, e.g. my_dflow_module.my_dflow_fun; defaults to a function that calls qsub dflow_mpi.pbs
-LOG_F =   # will default to the data_dir with dashes replacing slashes if blank
+#
+# python import style, e.g. my_dflow_module.my_dflow_fun 
+# defaults to a function that calls qsub dflow_mpi.pbs
+DFLOW_RUN_FUN =   
+# will default to the data_dir with dashes replacing slashes if blank
+LOG_F =   
 
 [HydroShare]
 SYNC_HYDROSHARE = False
-USERNAME =  # go to hydroshare.org and sign up to get your username and password
+# go to hydroshare.org and sign up to get your username and password
+USERNAME =  
 PASSWORD = 
