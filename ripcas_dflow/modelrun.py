@@ -443,60 +443,30 @@ def mr_log(log_f, msg):
     log_f.flush()
     os.fsync(log_f.fileno())
 
-if __name__ == '__main__':
 
-    import sys
+def run_model_series(data_dir, initial_vegetation_file, vegzone_map,
+                     ripcas_required_data, peak_flows_file, geometry_file,
+                     streambed_roughness, streambed_slope, dflow_run_fun=None,
+                     log_f=None):
 
-    help_msg = '''
-modelrun.py
+    if dflow_run_fun is None:
 
-Author: Matthew Turner
+        def dflow_fun():
 
-Usage:
-    python ripcas_dflow/modelrun.py data_dir initial_vegetation vegzone_map ripcas_required_data\
-            peak_flows_file geometry_file streambed_roughness streambed_slope
+            import subprocess
 
-    data_dir: directory to hold each time step of the model run
-    initial_vegetation: .asc file with initial vegetation map
-    vegzone_map: .asc file with vegetation zone information
-    ripcas_required_data: .xlsx file with veg type-to-n and shear resistance-per-veg type information
-    peak_flows_file: file with a column of peak flood flow in cubic meters per second
-    geometry_file: xyz file representing geometry of downstream cross section for boundary conditions calculation
-    streambed_roughness: floating point number for the roughness value of the streambed
-    streambed_slope: floating point number for the slope of the stream geography
-'''
-    if sys.argv[1] == '-h' or sys.argv[1] == '--help':
-        print help_msg
-        sys.exit(0)
+            return subprocess.Popen(
+                'qsub dflow_mpi.pbs', shell=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
 
-    if len(sys.argv) != 9:
-        print help_msg
-        sys.exit(1)
-
-    data_dir = sys.argv[1]
-    initial_vegetation_file = sys.argv[2]
-    vegzone_map = sys.argv[3]
-    ripcas_required_data = sys.argv[4]
-    peak_flows_file = sys.argv[5]
-    geometry_file = sys.argv[6]
-    streambed_roughness = float(sys.argv[7])
-    streambed_slope = float(sys.argv[8])
-
-    log_f = open(data_dir.replace('/', '-')[1:] + '.log', 'w')
+    if log_f is None:
+        log_f = open(data_dir.replace('/', '-')[1:] + '.log', 'w')
 
     with open(peak_flows_file, 'r') as f:
         l0 = f.readline().strip()
         assert l0 == 'Peak.Flood', '{} not Peak.Flood'.format(l0)
         peak_flows = [float(l.strip()) for l in f.readlines()]
-
-    def dflow_fun():
-
-        import subprocess
-
-        return subprocess.Popen(
-            'qsub dflow_mpi.pbs', shell=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
 
     for flow_idx, flow in enumerate(peak_flows):
 
@@ -574,3 +544,50 @@ Usage:
         mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
 
     log_f.close()
+
+
+
+
+if __name__ == '__main__':
+
+    import sys
+
+    help_msg = '''
+modelrun.py
+
+Author: Matthew Turner
+
+Usage:
+    python ripcas_dflow/modelrun.py data_dir initial_vegetation vegzone_map ripcas_required_data\
+            peak_flows_file geometry_file streambed_roughness streambed_slope
+
+    data_dir: directory to hold each time step of the model run
+    initial_vegetation: .asc file with initial vegetation map
+    vegzone_map: .asc file with vegetation zone information
+    ripcas_required_data: .xlsx file with veg type-to-n and shear resistance-per-veg type information
+    peak_flows_file: file with a column of peak flood flow in cubic meters per second
+    geometry_file: xyz file representing geometry of downstream cross section for boundary conditions calculation
+    streambed_roughness: floating point number for the roughness value of the streambed
+    streambed_slope: floating point number for the slope of the stream geography
+'''
+    if sys.argv[1] == '-h' or sys.argv[1] == '--help':
+        print help_msg
+        sys.exit(0)
+
+    if len(sys.argv) != 9:
+        print help_msg
+        sys.exit(1)
+
+    data_dir = sys.argv[1]
+    initial_vegetation_file = sys.argv[2]
+    vegzone_map = sys.argv[3]
+    ripcas_required_data = sys.argv[4]
+    peak_flows_file = sys.argv[5]
+    geometry_file = sys.argv[6]
+    streambed_roughness = float(sys.argv[7])
+    streambed_slope = float(sys.argv[8])
+
+    run_model_series(data_dir, initial_vegetation_file, vegzone_map,
+                     ripcas_required_data, peak_flows_file, geometry_file,
+                     streambed_roughness, streambed_slope, dflow_run_fun=None,
+                     log_f=None)
