@@ -3,6 +3,7 @@ Utilities for interacting with dflow and ripcas models via the virtual
 watershed.
 """
 import copy
+import six
 
 from netCDF4 import Dataset
 from numpy import (array, concatenate, fromstring, meshgrid,
@@ -75,22 +76,23 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
         (ESRIAsc) vegetation map updated with new values corresponding to
             succession rules
     """
-    if type(vegetation_map) is str:
+    if isinstance(vegetation_map, six.string_types):
         vegetation_map = ESRIAsc(vegetation_map)
     elif not isinstance(vegetation_map, ESRIAsc):
         raise TypeError('vegetation_map must be type str or ESRIAsc')
 
-    if type(shear_map) is str:
+    if isinstance(shear_map, six.string_types):
         shear_map = ESRIAsc(shear_map)
     elif not isinstance(shear_map, ESRIAsc):
         raise TypeError('shear_map must be type str or ESRIAsc')
 
-    if type(zone_map) is str:
+    if isinstance(zone_map, six.string_types):
         zone_map = ESRIAsc(zone_map)
     elif not isinstance(zone_map, ESRIAsc):
-        raise TypeError('zone_map must be type str of ESRIAsc')
+        raise TypeError('zone_map must be type str of ESRIAsc, not ' +
+                        str(type(zone_map)))
 
-    if type(ripcas_required_data) is str:
+    if isinstance(ripcas_required_data, six.string_types):
         cas_df = read_excel(ripcas_required_data)
 
         # sanity check to make sure our lookup is correct

@@ -444,11 +444,10 @@ def mr_log(log_f, msg):
     os.fsync(log_f.fileno())
 
 
-def modelrun_series(data_dir, initial_vegetation_file, vegzone_map,
+def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
                     ripcas_required_data, peak_flows_file, geometry_file,
                     streambed_roughness, streambed_slope, dflow_run_fun=None,
-                    log_f=None, hs_sync=False, hs_username=None,
-                    hs_password=None):
+                    log_f=None, debug=False):
 
     if dflow_run_fun is None:
 
@@ -463,6 +462,9 @@ def modelrun_series(data_dir, initial_vegetation_file, vegzone_map,
 
     if log_f is None:
         log_f = open(data_dir.replace('/', '-')[1:] + '.log', 'w')
+
+    else:
+        log_f = open(log_f, 'w')
 
     with open(peak_flows_file, 'r') as f:
         l0 = f.readline().strip()
@@ -486,13 +488,13 @@ def modelrun_series(data_dir, initial_vegetation_file, vegzone_map,
         dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
 
         if flow_idx == 0:
-            veg_file = initial_vegetation_file
+            veg_file = initial_vegetation_map
         else:
             veg_file = os.path.join(
                 data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
             )
 
-        if __debug__:
+        if debug:
             mr.run_dflow(dflow_dir, veg_file)
             job_id = 'debug'
 
@@ -517,7 +519,7 @@ def modelrun_series(data_dir, initial_vegetation_file, vegzone_map,
                 )
             )
 
-            if __debug__:
+            if debug:
                 job_not_finished = False
 
             else:
@@ -578,7 +580,7 @@ Usage:
         sys.exit(1)
 
     data_dir = sys.argv[1]
-    initial_vegetation_file = sys.argv[2]
+    initial_vegetation_map = sys.argv[2]
     vegzone_map = sys.argv[3]
     ripcas_required_data = sys.argv[4]
     peak_flows_file = sys.argv[5]
@@ -586,7 +588,7 @@ Usage:
     streambed_roughness = float(sys.argv[7])
     streambed_slope = float(sys.argv[8])
 
-    modelrun_series(data_dir, initial_vegetation_file, vegzone_map,
+    modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
                      ripcas_required_data, peak_flows_file, geometry_file,
                      streambed_roughness, streambed_slope, dflow_run_fun=None,
                      log_f=None)

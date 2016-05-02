@@ -6,7 +6,7 @@
 [General]
 
 DATA_DIR = debug_data_dir  # must create the directory before running 
-INITIAL_VEGETATION_FILE = data/ripcas_inputs/vegclass_2z.asc 
+INITIAL_VEGETATION_MAP = data/ripcas_inputs/vegclass_2z.asc 
 VEGZONE_MAP = data/ripcas_inputs/zonemap_2z.asc
 RIPCAS_REQUIRED_DATA = data/ripcas_inputs/ripcas-data-requirements.xlsx 
 PEAK_FLOWS_FILE = data/peak.txt 

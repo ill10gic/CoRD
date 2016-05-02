@@ -5,50 +5,60 @@ import click
 from ..modelrun import modelrun_series
 
 
-@click.command()
-@click.option('--config', type=click.File('r'), default=None)
-@click.option('--data_dir')
-@click.option('--initial_vegetation_file')
-@click.option('--vegzone_map')
-@click.option('--ripcas_required_data')
-@click.option('--peak_flows_file')
-@click.option('--geometry_file')
-@click.option('--streambed_roughness')
-@click.option('--streambed_slope')
-@click.option('--dflow_run_fun')
-@click.option('--log_f')
-@click.option('--hs_sync', is_flag=True)
-@click.option('--hs_username', default=None)
-@click.option('--hs_password', default=None)
-def cli(config, data_dir, initial_vegetation_file, vegzone_map,
-        ripcas_required_data, peak_flows_file, geometry_file,
-        streambed_roughness, streambed_slope, dflow_run_fun, log_f,
-        hs_sync, hs_username, hs_password):
+@click.group()
+@click.option('--debug', is_flag=True, default=False)
+@click.pass_context
+def cli(ctx, debug):
 
-    if config is not None:
-        # load these values from the config file
-        cfg = load_args_from_config(config)
-        modelrun_series(
-            cfg['data_dir'],
-            cfg['initial_vegetation_file'],
-            cfg['vegzone_map'],
-            cfg['ripcas_required_data'],
-            cfg['peak_flows_file'],
-            cfg['geometry_file'],
-            cfg['streambed_roughness'],
-            cfg['streambed_slope'],
-            cfg['dflow_run_fun'],
-            cfg['log_f'],
-            cfg['hs_sync'],
-            cfg['hs_username'],
-            cfg['hs_password']
-        )
+    ctx.obj = dict(DEBUG=debug)
 
-    else:
-        modelrun_series(data_dir, initial_vegetation_file, vegzone_map,
-                        ripcas_required_data, peak_flows_file, geometry_file,
-                        streambed_roughness, streambed_slope, dflow_run_fun,
-                        log_f, hs_sync, hs_username, hs_password)
+
+def CPE():
+    return click.Path(exists=True)
+
+
+@cli.command()
+@click.option('--data-dir', prompt=True)
+@click.option('--initial-veg-map', prompt=True, type=CPE())
+@click.option('--vegzone-map', prompt=True, type=CPE())
+@click.option('--ripcas-required-data', prompt=True, type=CPE())
+@click.option('--peak-flows-file', prompt=True, type=CPE())
+@click.option('--geometry-file', prompt=True, type=CPE())
+@click.option('--streambed-roughness', prompt=True, type=click.FLOAT)
+@click.option('--streambed-slope', prompt=True, type=click.FLOAT)
+@click.option('--dflow-run-fun', default=None)
+@click.option('--logfile', default=None)
+@click.pass_context
+def interactive(ctx, data_dir, initial_veg_map, vegzone_map,
+                ripcas_required_data, peak_flows_file, geometry_file,
+                streambed_roughness, streambed_slope, dflow_run_fun, logfile):
+
+    modelrun_series(data_dir, initial_veg_map, vegzone_map,
+                    ripcas_required_data, peak_flows_file, geometry_file,
+                    streambed_roughness, streambed_slope, dflow_run_fun,
+                    logfile, ctx.obj['DEBUG'])
+
+
+@cli.command()
+@click.argument('config_file', type=CPE())
+@click.pass_context
+def from_config(ctx, config_file):
+
+    cfg = load_args_from_config(config_file)
+
+    modelrun_series(
+        cfg['data_dir'],
+        cfg['initial_vegetation_map'],
+        cfg['vegzone_map'],
+        cfg['ripcas_required_data'],
+        cfg['peak_flows_file'],
+        cfg['geometry_file'],
+        cfg['streambed_roughness'],
+        cfg['streambed_slope'],
+        cfg['dflow_run_fun'],
+        cfg['log_f'],
+        ctx.obj['DEBUG']
+    )
 
 
 def load_args_from_config(config_file):
@@ -65,21 +75,23 @@ def load_args_from_config(config_file):
     cfg = ConfigParser(inline_comment_prefixes='#')
     cfg.read(config_file)
 
-    gen = cfg['General']
+    gen = dict(cfg['General'])
     if gen['log_f'] == u'':
         gen['log_f'] = None
 
     if gen['dflow_run_fun'] == u'':
         gen['dflow_run_fun'] = None
 
-    hs = cfg['HydroShare']
+    gen['streambed_roughness'] = float(gen['streambed_roughness'])
+    gen['streambed_slope'] = float(gen['streambed_slope'])
 
+    hs = dict(cfg['HydroShare'])
     if hs['sync_hydroshare'] == u'False':
         hs['sync_hydroshare'] = False
         hs['hs_username'] = None
         hs['hs_password'] = None
 
-    d = dict(gen)
-    d.update(dict(hs))
+    ret = gen
+    ret.update(hs)
 
-    return d
+    return ret
