@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='modelrun_series',
+    name='cord',
     version='0.1',
     packages=find_packages(),
     include_package_data=True,
@@ -11,6 +11,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        modelrun_series=ripcas_dflow.scripts.modelrun_series:cli
+        cord=ripcas_dflow.scripts.cord:cli
     '''
 )

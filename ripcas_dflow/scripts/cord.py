@@ -1,6 +1,11 @@
 from configparser import ConfigParser
+from hs_restclient import HydroShare, HydroShareAuthBasic
 
 import click
+import glob
+import os
+import shutil
+import zipfile
 
 from ..modelrun import modelrun_series
 
@@ -32,6 +37,7 @@ def CPE():
 def interactive(ctx, data_dir, initial_veg_map, vegzone_map,
                 ripcas_required_data, peak_flows_file, geometry_file,
                 streambed_roughness, streambed_slope, dflow_run_fun, logfile):
+    """Run CoRD interactively, specifying some options if desired"""
 
     modelrun_series(data_dir, initial_veg_map, vegzone_map,
                     ripcas_required_data, peak_flows_file, geometry_file,
@@ -43,7 +49,7 @@ def interactive(ctx, data_dir, initial_veg_map, vegzone_map,
 @click.argument('config_file', type=CPE())
 @click.pass_context
 def from_config(ctx, config_file):
-
+    """Run CoRD using parameters specified by <config_file>"""
     cfg = load_args_from_config(config_file)
 
     modelrun_series(
@@ -59,6 +65,56 @@ def from_config(ctx, config_file):
         cfg['log_f'],
         ctx.obj['DEBUG']
     )
+
+
+@cli.command()
+@click.option('--username', prompt=True)
+@click.option('--password', prompt=True)
+@click.option('--modelrun-dir', prompt=True)
+@click.option('--include-shear-nc', type=click.BOOL, default=False)
+@click.option('--resource-title', prompt=True)
+# @click.option('--abstract', type=CPE(), default=None)
+@click.option('-k', '--keyword', multiple=True, default=None)
+@click.pass_context
+def post_hs(ctx, username, password, modelrun_dir, include_shear_nc,
+            resource_title, keyword):
+    """Post the model run data to HydroShare"""
+    # iterate over files and folders of interest, adding files to resource
+    # RipCAS files are the vegetation .asc; TODO XXX include base RipCAS XXX TODO
+    veg_pattern = os.path.join(modelrun_dir, 'ripcas-*', 'vegetation.asc')
+
+    export_dir = os.path.join(modelrun_dir, 'export')
+    veg_export_dir = os.path.join(export_dir, 'vegetation')
+
+    if os.path.isdir(export_dir):
+        shutil.rmtree(export_dir)
+
+    os.mkdir(export_dir)
+    os.mkdir(veg_export_dir)
+
+    for tstep, veg_map in enumerate(glob.glob(veg_pattern)):
+
+        veg_map_path = os.path.join(
+            export_dir, 'vegetation', 'vegetation-%s.asc' % tstep
+        )
+        shutil.copy(veg_map, veg_map_path)
+
+    shutil.make_archive(veg_export_dir, 'zip', veg_export_dir)
+
+    # connect
+    hs = HydroShare(
+        auth=HydroShareAuthBasic(username=username, password=password)
+    )
+
+    # create new resource
+    rtype = 'GenericResource'
+
+    r_id = hs.createResource(
+       rtype, resource_title, keywords=keyword  # , abstract=abstract
+    )
+
+    print "adding vegmap archive file %s to resource %s" % (veg_map_path, r_id)
+    hs.addResourceFile(r_id, os.path.join(export_dir, 'vegetation.zip'))
 
 
 def load_args_from_config(config_file):
