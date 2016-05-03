@@ -5,17 +5,17 @@ import click
 import glob
 import os
 import shutil
-import zipfile
 
 from ..modelrun import modelrun_series
 
 
 @click.group()
 @click.option('--debug', is_flag=True, default=False)
+@click.option('--logfile', default=None)
 @click.pass_context
-def cli(ctx, debug):
+def cli(ctx, debug, logfile):
 
-    ctx.obj = dict(DEBUG=debug)
+    ctx.obj = dict(DEBUG=debug, LOGFILE=logfile)
 
 
 def CPE():
@@ -32,25 +32,28 @@ def CPE():
 @click.option('--streambed-roughness', prompt=True, type=click.FLOAT)
 @click.option('--streambed-slope', prompt=True, type=click.FLOAT)
 @click.option('--dflow-run-fun', default=None)
-@click.option('--logfile', default=None)
 @click.pass_context
 def interactive(ctx, data_dir, initial_veg_map, vegzone_map,
                 ripcas_required_data, peak_flows_file, geometry_file,
-                streambed_roughness, streambed_slope, dflow_run_fun, logfile):
-    """Run CoRD interactively, specifying some options if desired"""
+                streambed_roughness, streambed_slope, dflow_run_fun):
+    """Run CoRD interactively or with options"""
 
     modelrun_series(data_dir, initial_veg_map, vegzone_map,
                     ripcas_required_data, peak_flows_file, geometry_file,
                     streambed_roughness, streambed_slope, dflow_run_fun,
-                    logfile, ctx.obj['DEBUG'])
+                    ctx.obj['LOGFILE'], ctx.obj['DEBUG'])
 
 
 @cli.command()
 @click.argument('config_file', type=CPE())
 @click.pass_context
 def from_config(ctx, config_file):
-    """Run CoRD using parameters specified by <config_file>"""
+    """Run CoRD with params from <config_file>"""
+
     cfg = load_args_from_config(config_file)
+
+    ctxlog = ctx.obj['LOGFILE']
+    logfile = ctxlog if ctxlog is not None else cfg['log_f']
 
     modelrun_series(
         cfg['data_dir'],
@@ -62,7 +65,7 @@ def from_config(ctx, config_file):
         cfg['streambed_roughness'],
         cfg['streambed_slope'],
         cfg['dflow_run_fun'],
-        cfg['log_f'],
+        logfile,
         ctx.obj['DEBUG']
     )
 
@@ -73,7 +76,6 @@ def from_config(ctx, config_file):
 @click.option('--modelrun-dir', prompt=True)
 @click.option('--include-shear-nc', type=click.BOOL, default=False)
 @click.option('--resource-title', prompt=True)
-# @click.option('--abstract', type=CPE(), default=None)
 @click.option('-k', '--keyword', multiple=True, default=None)
 @click.pass_context
 def post_hs(ctx, username, password, modelrun_dir, include_shear_nc,
@@ -81,7 +83,6 @@ def post_hs(ctx, username, password, modelrun_dir, include_shear_nc,
     """Post the model run data to HydroShare"""
     # iterate over files and folders of interest, adding files to resource
     # RipCAS files are the vegetation .asc; TODO XXX include base RipCAS XXX TODO
-    veg_pattern = os.path.join(modelrun_dir, 'ripcas-*', 'vegetation.asc')
 
     export_dir = os.path.join(modelrun_dir, 'export')
     veg_export_dir = os.path.join(export_dir, 'vegetation')
@@ -92,6 +93,7 @@ def post_hs(ctx, username, password, modelrun_dir, include_shear_nc,
     os.mkdir(export_dir)
     os.mkdir(veg_export_dir)
 
+    veg_pattern = os.path.join(modelrun_dir, 'ripcas-*', 'vegetation.asc')
     for tstep, veg_map in enumerate(glob.glob(veg_pattern)):
 
         veg_map_path = os.path.join(
@@ -115,6 +117,34 @@ def post_hs(ctx, username, password, modelrun_dir, include_shear_nc,
 
     print "adding vegmap archive file %s to resource %s" % (veg_map_path, r_id)
     hs.addResourceFile(r_id, os.path.join(export_dir, 'vegetation.zip'))
+
+    inputs_dir = os.path.join(modelrun_dir, 'inputs')
+    inputs_export_basename = os.path.join(export_dir, 'inputs')
+    shutil.make_archive(inputs_export_basename, 'zip', inputs_dir)
+
+
+    print "adding inputs archive file %s to resource %s" % (veg_map_path, r_id)
+    hs.addResourceFile(
+        r_id, os.path.join(export_dir, 'inputs.zip')
+    )
+
+    shear_export_dir = os.path.join(export_dir, 'shear')
+    os.mkdir(shear_export_dir)
+
+    shear_pattern = os.path.join(modelrun_dir, 'dflow-*', 'shear_out.asc')
+    for tstep, shear_map in enumerate(glob.glob(shear_pattern)):
+
+        shear_map_path = os.path.join(
+            export_dir, 'shear', 'shear-%s.asc' % tstep
+        )
+        shutil.copy(shear_map, shear_map_path)
+
+    shutil.make_archive(shear_export_dir, 'zip', shear_export_dir)
+
+    print "adding shear archive file %s to resource %s" % (veg_map_path, r_id)
+    hs.addResourceFile(
+        r_id, os.path.join(export_dir, 'shear.zip')
+    )
 
 
 def load_args_from_config(config_file):

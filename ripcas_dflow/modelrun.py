@@ -253,6 +253,8 @@ class ModelRun(object):
             assert isinstance(shear_asc, ESRIAsc),\
                 'shear_asc must be of type ESRIAsc if provided'
 
+        shear_asc.write(os.path.join(self.dflow_directory, 'shear_out.asc'))
+
         output_veg_ascii = ripcas(
             self.vegetation_ascii, zone_map_path,
             shear_asc, ripcas_required_data_path
@@ -470,6 +472,23 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
         l0 = f.readline().strip()
         assert l0 == 'Peak.Flood', '{} not Peak.Flood'.format(l0)
         peak_flows = [float(l.strip()) for l in f.readlines()]
+
+    inputs_dir = os.path.join(data_dir, 'inputs')
+    if os.path.isdir(inputs_dir):
+        shutil.rmtree(inputs_dir)
+    os.mkdir(inputs_dir)
+
+    shutil.copy(initial_vegetation_map, inputs_dir)
+    shutil.copy(vegzone_map, inputs_dir)
+    shutil.copy(ripcas_required_data, inputs_dir)
+    shutil.copy(peak_flows_file, inputs_dir)
+    shutil.copy(geometry_file, inputs_dir)
+
+    roughness_slope_path = os.path.join(inputs_dir, 'roughness_slope.txt')
+
+    with open(roughness_slope_path, 'w') as f:
+        f.write('roughness\tslope\n')
+        f.write('%s\t%s' % (streambed_roughness, streambed_slope))
 
     for flow_idx, flow in enumerate(peak_flows):
 

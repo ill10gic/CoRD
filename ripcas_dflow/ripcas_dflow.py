@@ -178,7 +178,7 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
 
     data[isnan(data)] = int(header_dict['NODATA_value'])
 
-    return ESRIAsc(data=data, **header_dict)
+    return ESRIAsc(data=Series(data), **header_dict)
 
 
 def veg2n(veg_map, ripcas_required_data):
@@ -230,6 +230,10 @@ class ESRIAsc:
         self.yllcorner = yllcorner
         self.cellsize = cellsize
         self.NODATA_value = NODATA_value
+
+        if data is not None and not isinstance(data, Series):
+            raise RuntimeError('data value must be type pandas.Series')
+
         self.data = data
 
         # if a file is provided, the file metadata will overwrite any
