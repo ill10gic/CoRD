@@ -95,9 +95,7 @@ class TestRipCASAndHelpers(unittest.TestCase):
 
         assert npol == expected_pol
 
-    # def test_ripcas_with_dflow_io(self):
-        # assert False
-
+    ### TODO
     # def test_mesh_to_asc(self):
         # assert False
 
@@ -176,6 +174,7 @@ class TestModelRun(unittest.TestCase):
         self.mr.dflow_has_run = True
         self.mr.vegetation_ascii = ESRIAsc('test/data/vegcode.asc')
 
+        self.mr.dflow_directory = 'test/data'
         out = self.mr.run_ripcas(
             'test/data/zonemap.asc', 'test/data/resist_manning_lookup.xlsx',
             os.path.join(self.tmpdir, 'ripcas-test'),
@@ -183,3 +182,10 @@ class TestModelRun(unittest.TestCase):
         )
 
         assert out == ESRIAsc('test/data/expected_veg_output.asc')
+
+
+class TestCLI(unittest.TestCase):
+    """
+    Test `cord` CLI
+    """
+    pass
