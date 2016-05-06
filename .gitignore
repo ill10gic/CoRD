@@ -63,3 +63,4 @@ target/
 venv
 *~$*
 *debug*
+docs/_build
