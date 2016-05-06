@@ -561,7 +561,9 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
         ripcas_dir = os.path.join(data_dir, 'ripcas-' + str(flow_idx))
 
-        mr.run_ripcas(vegzone_map, ripcas_required_data, ripcas_dir)
+        if debug:
+            mr.run_ripcas(vegzone_map, ripcas_required_data, ripcas_dir,
+                          shear_asc=ESRIAsc('data/shear_out.asc'))
 
         mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
 

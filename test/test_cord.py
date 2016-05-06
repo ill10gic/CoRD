@@ -2,11 +2,12 @@
 Tests for posting/ingetsting dflow and ripcas data to each respective model
 to/from the virtual watershed.
 """
-import os
+import glob
 import numpy
-import re
+import os
 import responses
 import shutil
+import traceback
 import unittest
 
 from click.testing import CliRunner
@@ -188,9 +189,6 @@ class TestModelRun(unittest.TestCase):
 
         assert out == ESRIAsc('test/data/expected_veg_output.asc')
 
-    def test_modelrun_series(self):
-        assert False
-
 
 class TestCLI(unittest.TestCase):
     """
@@ -198,17 +196,16 @@ class TestCLI(unittest.TestCase):
     """
 
     def setUp(self):
-        self.r = CliRunner()
-
-        self.hs_basedir = 'fakedir'
-        set_up_for_hs_test(self.hs_basedir)
+        pass
 
     def tearDown(self):
-
-        shutil.rmtree(self.hs_basedir)
+        pass
 
     @responses.activate
     def test_push_hs(self):
+
+        hs_basedir = 'fakedir'
+        _set_up_for_hs_test(hs_basedir)
 
         base_url = 'https://www.hydroshare.org/hsapi/'
         rid = 'X5A67'
@@ -228,28 +225,87 @@ class TestCLI(unittest.TestCase):
                      status=200)
 
             # response to adding vegetation, inputs, and  file
-            rsps.add(responses.POST, base_url + 'resource/' + rid + '/files/',
-                     json={'resource_id': rid},
-                     status=201)
+            file_add_url = base_url + 'resource/' + rid + '/files/'
 
+            for i in range(3):
+                rsps.add(responses.POST, file_add_url,
+                         json={'resource_id': rid},
+                         status=201)
+
+            # prepare cli run
             runner = CliRunner()
 
-            runner.invoke(
+            result = runner.invoke(
                 cli, ['post_hs', '--username', 'fake', '--password', 'fake',
-                      '--modelrun-dir', self.hs_basedir, '--resource-title',
+                      '--modelrun-dir', hs_basedir, '--resource-title',
                       'fake resource that will never get to HydroShare']
             )
+            assert not result.exception, result.exception
+            assert result.exit_code == 0
 
             assert len(rsps.calls) == 5
 
+        shutil.rmtree(hs_basedir)
+
     def test_from_config(self):
-        assert False
+
+        runner = CliRunner()
+
+        mr_dir = 'test/data/modelrun'
+        if os.path.isdir(mr_dir):
+            shutil.rmtree(mr_dir)
+
+        os.mkdir(mr_dir)
+
+        result = runner.invoke(
+            cli, ['--debug', 'from_config', 'test/data/test.conf']
+        )
+
+        assert not result.exception,\
+            str(result.exception) + '\n' + \
+            str(traceback.print_tb(result.exc_info[2]))
+
+        assert result.exit_code == 0, result.exit_code
+
+        _test_modelrun_success(mr_dir)
+
+        shutil.rmtree('test/data/modelrun')
 
     def test_interactive(self):
-        assert False
+
+        runner = CliRunner()
+
+        mr_dir = 'test/data/modelrun'
+
+        if os.path.isdir(mr_dir):
+            shutil.rmtree(mr_dir)
+
+        os.mkdir(mr_dir)
+
+        result = runner.invoke(
+            cli, ['--debug', 'interactive', '--data-dir', mr_dir,
+                  '--initial-veg-map', 'test/data/vegcode.asc',
+                  '--vegzone-map', 'test/data/zonemap.asc',
+                  '--ripcas-required-data',
+                  'test/data/resist_manning_lookup.xlsx',
+                  '--peak-flows-file', 'test/data/floods.txt',
+                  '--geometry-file', 'data/dflow_inputs/DBC_geometry.xyz',
+                  '--streambed-roughness', '0.04',
+                  '--streambed-slope', '0.001']
+        )
+
+        assert not result.exception,\
+            str(result.exception) + '\n' + \
+            str(traceback.print_tb(result.exc_info[2]))
+
+        assert result.exit_code == 0, result.exit_code
+
+        _test_modelrun_success(mr_dir)
+
+        shutil.rmtree('test/data/modelrun')
 
 
-def set_up_for_hs_test(basedir):
+def _set_up_for_hs_test(basedir):
 
     if os.path.isdir(basedir):
         shutil.rmtree(basedir)
@@ -285,3 +341,49 @@ def set_up_for_hs_test(basedir):
         if 'ripcas' in d:
             with open(opj(d, 'vegetation.asc'), 'w') as f:
                 f.write('fake vegetation!')
+
+
+def _test_modelrun_success(modelrun_dir):
+
+    opj = os.path.join
+    mrd = modelrun_dir
+
+    g = glob.glob(opj(mrd, '*'))
+
+    assert len(g) == 5
+
+    df_dirs = [opj(mrd, 'dflow-0'), opj(mrd, 'dflow-1')]
+
+    for d in df_dirs:
+
+        assert d in g
+
+        g_df = glob.glob(opj(d, '*'))
+        assert opj(d, 'base.ext') in g_df
+        assert opj(d, 'base.mdu') in g_df
+        assert opj(d, 'base_net.nc') in g_df
+        assert opj(d, 'boundriver_up.pli') in g_df
+        assert opj(d, 'boundriverdown.pli') in g_df
+        assert opj(d, 'boundriver_up_0001.cmp') in g_df
+        assert opj(d, 'boundriverdown_0001.cmp') in g_df
+        assert opj(d, 'dflow_mpi.pbs') in g_df
+        assert opj(d, 'n.pol') in g_df
+        assert opj(d, 'shear_out.asc') in g_df
+
+    ripcas_dirs = [opj(mrd, 'ripcas-0'), opj(mrd, 'ripcas-1')]
+
+    for d in ripcas_dirs:
+        assert d in g
+        assert os.path.exists(opj(d, 'vegetation.asc'))
+
+    inputs_dir = opj(mrd, 'inputs')
+    inputs_list = [
+        'DBC_geometry.xyz', 'floods.txt', 'resist_manning_lookup.xlsx',
+        'roughness_slope.txt', 'vegcode.asc', 'zonemap.asc'
+    ]
+
+    for i in inputs_list:
+        assert os.path.exists(opj(inputs_dir, i))
+
+    with open(opj(inputs_dir, 'roughness_slope.txt'), 'r') as f:
+        assert f.read() == 'roughness\tslope\n0.04\t0.001'
