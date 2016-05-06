@@ -4,10 +4,15 @@ to/from the virtual watershed.
 """
 import os
 import numpy
+import re
+import responses
 import shutil
 import unittest
 
+from click.testing import CliRunner
+
 from ripcas_dflow import ESRIAsc, Pol, ripcas, veg2n, ModelRun
+from ripcas_dflow.scripts.cord import cli
 
 
 class TestRipCASAndHelpers(unittest.TestCase):
@@ -183,9 +188,100 @@ class TestModelRun(unittest.TestCase):
 
         assert out == ESRIAsc('test/data/expected_veg_output.asc')
 
+    def test_modelrun_series(self):
+        assert False
+
 
 class TestCLI(unittest.TestCase):
     """
     Test `cord` CLI
     """
-    pass
+
+    def setUp(self):
+        self.r = CliRunner()
+
+        self.hs_basedir = 'fakedir'
+        set_up_for_hs_test(self.hs_basedir)
+
+    def tearDown(self):
+
+        shutil.rmtree(self.hs_basedir)
+
+    @responses.activate
+    def test_push_hs(self):
+
+        base_url = 'https://www.hydroshare.org/hsapi/'
+        rid = 'X5A67'
+
+        # if all mock rsps are not used w/in context it raises AssertError
+        with responses.RequestsMock() as rsps:
+
+            # set up response objects
+            # response to create new resource
+            rsps.add(responses.POST, base_url + 'resource/',
+                     json={'resource_id': rid},
+                     status=201)
+
+            # before resource created, client checks types; auth req'd
+            rsps.add(responses.GET, base_url + 'resourceTypes/',
+                     json=[{'resource_type': 'GenericResource'}],
+                     status=200)
+
+            # response to adding vegetation, inputs, and  file
+            rsps.add(responses.POST, base_url + 'resource/' + rid + '/files/',
+                     json={'resource_id': rid},
+                     status=201)
+
+            runner = CliRunner()
+
+            runner.invoke(
+                cli, ['post_hs', '--username', 'fake', '--password', 'fake',
+                      '--modelrun-dir', self.hs_basedir, '--resource-title',
+                      'fake resource that will never get to HydroShare']
+            )
+
+            assert len(rsps.calls) == 5
+
+    def test_from_config(self):
+        assert False
+
+    def test_interactive(self):
+        assert False
+
+
+def set_up_for_hs_test(basedir):
+
+    if os.path.isdir(basedir):
+        shutil.rmtree(basedir)
+
+    os.mkdir(basedir)
+
+    opj = os.path.join
+
+    input_dir = opj(basedir, 'inputs')
+    os.mkdir(input_dir)
+
+    inputs = ['geom.txt', 'flows.txt', 'ripcas-required.xlsx',
+              'vegzone.asc', 'init_veg.asc', 'roughness_slope.txt']
+
+    for i in inputs:
+        with open(opj(input_dir, i), 'w') as f:
+            f.write('fake!')
+
+    ripcas_dirs = [opj(basedir, 'ripcas-0'),
+                   opj(basedir, 'ripcas-1')]
+
+    dflow_dirs = [opj(basedir, 'dflow-0'),
+                  opj(basedir, 'dflow-1')]
+
+    for d in (dflow_dirs + ripcas_dirs):
+
+        os.mkdir(d)
+
+        if 'dflow' in d:
+            with open(opj(d, 'shear_out.asc'), 'w') as f:
+                f.write('fake shear out!')
+
+        if 'ripcas' in d:
+            with open(opj(d, 'vegetation.asc'), 'w') as f:
+                f.write('fake vegetation!')
