@@ -12,8 +12,8 @@ import unittest
 
 from click.testing import CliRunner
 
-from ripcas_dflow import ESRIAsc, Pol, ripcas, veg2n, ModelRun
-from ripcas_dflow.scripts.cord import cli
+from cord import ESRIAsc, Pol, ripcas, veg2n, ModelRun
+from cord.scripts.cord import cli
 
 
 class TestRipCASAndHelpers(unittest.TestCase):
