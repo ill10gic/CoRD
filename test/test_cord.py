@@ -128,8 +128,7 @@ class TestModelRun(unittest.TestCase):
         """
         Calculate a series of boundary conditions for the range we'll see
         """
-        # geometry = Pol.from_river_geometry_file('data/DBC_geometry.xyz')
-        geometry = 'data/dflow_inputs/DBC_geometry.xyz'
+        geometry = 'cord/data/dflow_inputs/DBC_geometry.xyz'
         roughness = 0.04
         reach_slope = 0.001
 
@@ -289,7 +288,7 @@ class TestCLI(unittest.TestCase):
                   '--ripcas-required-data',
                   'test/data/resist_manning_lookup.xlsx',
                   '--peak-flows-file', 'test/data/floods.txt',
-                  '--geometry-file', 'data/dflow_inputs/DBC_geometry.xyz',
+                  '--geometry-file', 'cord/data/dflow_inputs/DBC_geometry.xyz',
                   '--streambed-roughness', '0.04',
                   '--streambed-slope', '0.001']
         )

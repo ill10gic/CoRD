@@ -151,7 +151,11 @@ class ModelRun(object):
 
         Pol.from_ascii(
             veg2n(self.vegetation_ascii,
-                  'data/ripcas_inputs/ripcas-data-requirements.xlsx')
+                  _join_data_dir(
+                    os.path.join('ripcas_inputs',
+                                 'ripcas-data-requirements.xlsx')
+                    )
+                  )
         ).write(veg_path)
 
         oj = os.path.join
@@ -169,27 +173,35 @@ class ModelRun(object):
                          'base_map.nc')
 
         with open(pbs_path, 'w') as f:
-            s = open('data/dflow_inputs/dflow_mpi.pbs', 'r').read()
+            p = _join_data_dir(oj('dflow_inputs', 'dflow_mpi.pbs'))
+            s = open(p, 'r').read()
             f.write(s)
 
         with open(mdu_path, 'w') as f:
-            s = open('data/dflow_inputs/base.mdu', 'r').read()
+            p = _join_data_dir(oj('dflow_inputs', 'base.mdu'))
+            s = open(p, 'r').read()
             f.write(s)
 
         with open(net_path, 'w') as f:
-            s = open('data/dflow_inputs/base_net.nc', 'r').read()
+            p = _join_data_dir(oj('dflow_inputs', 'base_net.nc'))
+            s = open(p, 'r').read()
             f.write(s)
 
         with open(ext_path, 'w') as f:
-            s = open('data/dflow_inputs/base.ext', 'r').read()
+            p = _join_data_dir(oj('dflow_inputs', 'base.ext'))
+            s = open(p, 'r').read()
             f.write(s)
 
         with open(brd_path, 'w') as f:
-            s = open('data/dflow_inputs/boundriverdown.pli', 'r').read()
+            # s = open('cord/data/dflow_inputs/boundriverdown.pli', 'r').read()
+            p = _join_data_dir(oj('dflow_inputs', 'boundriverdown.pli'))
+            s = open(p, 'r').read()
             f.write(s)
 
         with open(bru_path, 'w') as f:
-            s = open('data/dflow_inputs/boundriver_up.pli', 'r').read()
+            # s = open('cord/data/dflow_inputs/boundriver_up.pli', 'r').read()
+            p = _join_data_dir(oj('dflow_inputs', 'boundriver_up.pli'))
+            s = open(p, 'r').read()
             f.write(s)
 
         bkdir = os.getcwd()
@@ -562,8 +574,9 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
         ripcas_dir = os.path.join(data_dir, 'ripcas-' + str(flow_idx))
 
         if debug:
+            p = _join_data_dir('shear_out.asc')
             mr.run_ripcas(vegzone_map, ripcas_required_data, ripcas_dir,
-                          shear_asc=ESRIAsc('data/shear_out.asc'))
+                          shear_asc=ESRIAsc(p))
 
         mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
 
@@ -613,3 +626,10 @@ Usage:
                      ripcas_required_data, peak_flows_file, geometry_file,
                      streambed_roughness, streambed_slope, dflow_run_fun=None,
                      log_f=None)
+
+
+def _join_data_dir(f):
+
+    data_dir = os.path.join(os.path.dirname(__file__), 'data')
+
+    return os.path.join(data_dir, f)

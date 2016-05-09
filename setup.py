@@ -36,9 +36,6 @@ requires = [
 
 tests_require = [
     'responses>=0.5.1',
-    'ipdb>=0.10.0',
-    'ipython>=4.2.0',
-    'ipython-genutils>=0.1.0',
 ]
 
 setup(
@@ -47,6 +44,15 @@ setup(
     version='0.1',
     author_email='maturner01@gmail.com',
     author='Matthew Turner',
+    license='BSD3',
+    classifiers=[
+        'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python :: 2.7',
+        'Environment :: Console',
+        'Development Status :: 4 - Beta',
+        'Topic :: Scientific/Engineering',
+        'Intended Audience :: Science/Research'
+    ],
     packages=find_packages(),
     include_package_data=True,
     install_requires=requires,
