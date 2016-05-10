@@ -1,6 +1,11 @@
 """
-Utilities for interacting with dflow and ripcas models via the virtual
-watershed.
+Utilities for interacting with dflow and ripcas models
+
+Author:
+    Matthew A. Turner <maturner01@gmail.com>
+
+Date:
+    9 May 2016
 """
 import copy
 import six

@@ -19,9 +19,3 @@ STREAMBED_SLOPE = 0.001
 DFLOW_RUN_FUN =   
 # will default to the data_dir with dashes replacing slashes if blank
 LOG_F =   
-
-[HydroShare]
-SYNC_HYDROSHARE = False
-# go to hydroshare.org and sign up to get your username and password
-USERNAME =  
-PASSWORD = 
