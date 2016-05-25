@@ -1,0 +1,21 @@
+# Default configuration file; customize as necessary.
+#
+# To enable syncing with HydroShare, set SYNC_HYDROSHARE to "True" and
+# add your HydroShare login info.
+
+[General]
+
+DATA_DIR = debug_data_dir  # must create the directory before running 
+INITIAL_VEGETATION_MAP = data/ripcas_inputs/vegclass_2z.asc 
+VEGZONE_MAP = data/ripcas_inputs/zonemap_2z.asc
+RIPCAS_REQUIRED_DATA = data/ripcas_inputs/ripcas-data-requirements.xlsx 
+PEAK_FLOWS_FILE = data/peak.txt 
+GEOMETRY_FILE = data/dflow_inputs/DBC_geometry.xyz
+STREAMBED_ROUGHNESS = 0.04
+STREAMBED_SLOPE = 0.001
+#
+# python import style, e.g. my_dflow_module.my_dflow_fun 
+# defaults to a function that calls qsub dflow_mpi.pbs
+DFLOW_RUN_FUN =   
+# will default to the data_dir with dashes replacing slashes if blank
+LOG_F =   

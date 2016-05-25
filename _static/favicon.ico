@@ -1,0 +1,16 @@
+--2016-05-09 17:13:56--  https://github.com/VirtualWatershed/vw-api-docs/raw/master/source/figures/vwlogo_grey_favicon-32.png
+Resolving github.com... 192.30.252.122
+Connecting to github.com|192.30.252.122|:443... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: https://raw.githubusercontent.com/VirtualWatershed/vw-api-docs/master/source/figures/vwlogo_grey_favicon-32.png [following]
+--2016-05-09 17:13:57--  https://raw.githubusercontent.com/VirtualWatershed/vw-api-docs/master/source/figures/vwlogo_grey_favicon-32.png
+Resolving raw.githubusercontent.com... 199.27.79.133
+Connecting to raw.githubusercontent.com|199.27.79.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 2597 (2.5K) [image/png]
+Saving to: 'vwlogo_grey_favicon-32.png'
+
+     0K ..                                                    100% 34.4M=0s
+
+2016-05-09 17:13:58 (34.4 MB/s) - 'vwlogo_grey_favicon-32.png' saved [2597/2597]
+

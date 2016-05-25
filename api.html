@@ -1,0 +1,383 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>API Reference &mdash; CoRD</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="_static/vwlogo_grey_favicon-32.png"/>
+    <link rel="top" title="CoRD" href="index.html" />
+    <link rel="prev" title="Usage" href="usage.html" />
+<link href='https://fonts.googleapis.com/css?family=Ubuntu+Mono|Pacifico|Open+Sans|Metrophobic' rel='stylesheet' type='text/css'>
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
+<p>This API reference is mostly for developers, though regular users might also
+be able to use the following functions in their own scripts and other software.</p>
+<div class="section" id="module-cord.modelrun">
+<span id="cord-modelrun-py"></span><span id="cord-modelrun-api"></span><h2>cord/modelrun.py<a class="headerlink" href="#module-cord.modelrun" title="Permalink to this headline">¶</a></h2>
+<p>Functions to calculate the downstream water surface elevation by minimizing the
+difference between flows calculated via the Manning Formula for discharge and
+the historical peak flood values.</p>
+<p>(<a class="reference external" href="https://en.wikipedia.org/wiki/Manning_formula">https://en.wikipedia.org/wiki/Manning_formula</a>)
+(<a class="reference external" href="https://en.wikipedia.org/wiki/Volumetric_flow_rate">https://en.wikipedia.org/wiki/Volumetric_flow_rate</a>)</p>
+<dl class="docutils">
+<dt>Author:</dt>
+<dd>Matthew A. Turner &lt;<a class="reference external" href="mailto:maturner01&#37;&#52;&#48;gmail&#46;com">maturner01<span>&#64;</span>gmail<span>&#46;</span>com</a>&gt;</dd>
+<dt>Date:</dt>
+<dd>19 April 2016</dd>
+</dl>
+<dl class="class">
+<dt id="cord.modelrun.BoundarySolutionInfo">
+<em class="property">class </em><code class="descclassname">cord.modelrun.</code><code class="descname">BoundarySolutionInfo</code><span class="sig-paren">(</span><em>ws_elev</em>, <em>streamflow</em>, <em>error</em>, <em>success</em><span class="sig-paren">)</span><a class="headerlink" href="#cord.modelrun.BoundarySolutionInfo" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="cord.modelrun.BoundarySolutionInfo.error">
+<code class="descname">error</code><a class="headerlink" href="#cord.modelrun.BoundarySolutionInfo.error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cord.modelrun.BoundarySolutionInfo.streamflow">
+<code class="descname">streamflow</code><a class="headerlink" href="#cord.modelrun.BoundarySolutionInfo.streamflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cord.modelrun.BoundarySolutionInfo.success">
+<code class="descname">success</code><a class="headerlink" href="#cord.modelrun.BoundarySolutionInfo.success" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cord.modelrun.BoundarySolutionInfo.ws_elev">
+<code class="descname">ws_elev</code><a class="headerlink" href="#cord.modelrun.BoundarySolutionInfo.ws_elev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cord.modelrun.ModelRun">
+<em class="property">class </em><code class="descclassname">cord.modelrun.</code><code class="descname">ModelRun</code><a class="reference internal" href="_modules/cord/modelrun.html#ModelRun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.modelrun.ModelRun" title="Permalink to this definition">¶</a></dt>
+<dd><p>A single coupled run. First DFLOW then RipCAS. CoupledRunSequence will
+encapsulate a series of coupled runs commencing with preparation of the
+initial vegetation map for DFLOW. For now, assume that the vegetation map
+is provided to the run_dflow method.</p>
+<dl class="method">
+<dt id="cord.modelrun.ModelRun.calculate_bc">
+<code class="descname">calculate_bc</code><span class="sig-paren">(</span><em>target_streamflow</em>, <em>dbc_geometry_file</em>, <em>streambed_roughness</em>, <em>slope</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/modelrun.html#ModelRun.calculate_bc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.modelrun.ModelRun.calculate_bc" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Arguments:</dt>
+<dd><dl class="first docutils">
+<dt>target_streamflow (float): historical or other streamflow that</dt>
+<dd>will be used to drive DFLOW model; this calculation recovers
+an estimate for the Water Surface elevation (WS) for this given
+streamflow.</dd>
+<dt>dbc_geometry_file (str): path to the stream&#8217;s cross-sectional</dt>
+<dd>geometry xyz file</dd>
+</dl>
+<p class="last">streambed_roughness (float): Manning&#8217;s n-value for the streambed
+slope (float): slope taken for the reach</p>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>(BoundaryCondition, BoundaryCondition): tuple of upstream and</dt>
+<dd>downstream BoundaryCondition instances</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cord.modelrun.ModelRun.run_dflow">
+<code class="descname">run_dflow</code><span class="sig-paren">(</span><em>dflow_directory</em>, <em>vegetation_map</em>, <em>clobber=True</em>, <em>pbs_script_name='dflow_mpi.pbs'</em>, <em>dflow_run_fun=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/modelrun.html#ModelRun.run_dflow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.modelrun.ModelRun.run_dflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Both input and output dflow files will go into the dflow_directory,
+but in input/ and output/ subdirectories.</p>
+<dl class="docutils">
+<dt>Arguments:</dt>
+<dd><dl class="first docutils">
+<dt>dflow_directory (str): directory where DFLOW files should be</dt>
+<dd>put and where the dflow_run_fun will be run from</dd>
+<dt>vegetation_map (str): path to the input vegetation.pol file. This</dt>
+<dd>function assumes this has already been generated in the proper
+format b/c this seems like the best separation of
+responsibilities.</dd>
+<dt>clobber (bool): whether or not to overwrite dflow_directory if</dt>
+<dd>it exists</dd>
+</dl>
+<p>pbs_script_name (str): name of .pbs script w/o directory
+dflow_run_fun (function): argument-free function to run DFLOW.</p>
+<blockquote class="last">
+<div>Ex. <cite>dflow_run_fun=f</cite> where <cite>f</cite> defined by
+<cite>def f: subprocess.call([&#8216;qsub&#8217;, &#8216;dflow_mpi.pbs&#8217;])</cite></div></blockquote>
+</dd>
+<dt>Returns:</dt>
+<dd>None</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cord.modelrun.StreamflowTuple">
+<em class="property">class </em><code class="descclassname">cord.modelrun.</code><code class="descname">StreamflowTuple</code><span class="sig-paren">(</span><em>ws_elev</em>, <em>streamflow</em><span class="sig-paren">)</span><a class="headerlink" href="#cord.modelrun.StreamflowTuple" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="cord.modelrun.StreamflowTuple.streamflow">
+<code class="descname">streamflow</code><a class="headerlink" href="#cord.modelrun.StreamflowTuple.streamflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cord.modelrun.StreamflowTuple.ws_elev">
+<code class="descname">ws_elev</code><a class="headerlink" href="#cord.modelrun.StreamflowTuple.ws_elev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cord.ripcas_dflow">
+<span id="cord-ripcas-dflow-py"></span><span id="cord-ripcas-dflow-api"></span><h2>cord/ripcas_dflow.py<a class="headerlink" href="#module-cord.ripcas_dflow" title="Permalink to this headline">¶</a></h2>
+<p>Utilities for interacting with dflow and ripcas models</p>
+<dl class="docutils">
+<dt>Author:</dt>
+<dd>Matthew A. Turner &lt;<a class="reference external" href="mailto:maturner01&#37;&#52;&#48;gmail&#46;com">maturner01<span>&#64;</span>gmail<span>&#46;</span>com</a>&gt;</dd>
+<dt>Date:</dt>
+<dd>9 May 2016</dd>
+</dl>
+<dl class="class">
+<dt id="cord.ripcas_dflow.Pol">
+<em class="property">class </em><code class="descclassname">cord.ripcas_dflow.</code><code class="descname">Pol</code><a class="reference internal" href="_modules/cord/ripcas_dflow.html#Pol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.ripcas_dflow.Pol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper creating and/or reading the .pol files of n-values for DFLOW</p>
+<dl class="classmethod">
+<dt id="cord.ripcas_dflow.Pol.from_ascii">
+<em class="property">classmethod </em><code class="descname">from_ascii</code><span class="sig-paren">(</span><em>asc</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/ripcas_dflow.html#Pol.from_ascii"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.ripcas_dflow.Pol.from_ascii" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a polygon file from ESRIAsc</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cord.ripcas_dflow.Pol.write">
+<code class="descname">write</code><span class="sig-paren">(</span><em>out_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/ripcas_dflow.html#Pol.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.ripcas_dflow.Pol.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>write the Pol to file</p>
+<p>Returns: None</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="cord.ripcas_dflow.ripcas">
+<code class="descclassname">cord.ripcas_dflow.</code><code class="descname">ripcas</code><span class="sig-paren">(</span><em>vegetation_map</em>, <em>zone_map</em>, <em>shear_map</em>, <em>ripcas_required_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/ripcas_dflow.html#ripcas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.ripcas_dflow.ripcas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple version of the CASiMiR model for vegetation succession. Before the
+model is run, we check that all the unique values from vegetation_map are
+present in the shear_resistance_dict. Otherwise the process will fail
+wherever the vegetation map value is not present in the dictionary
+on lookup.</p>
+<dl class="docutils">
+<dt>Arguments:</dt>
+<dd><dl class="first last docutils">
+<dt>vegetation_map (str or ESRIAsc): location on disk or ESRIAsc</dt>
+<dd>representation of the vegetation map</dd>
+<dt>zone_map (str or ESRIAsc): location on disk or ESRIAsc representation</dt>
+<dd>of the zone map.</dd>
+<dt>shear_map (str or ESRIAsc): location on disk or ESRIAsc representation</dt>
+<dd>of the shear stress map</dd>
+<dt>ripcas_required_data (str): Excel spreadsheet of data needed for</dt>
+<dd>ripcas run. Encompasses the landscape model for the watershed.
+Can have one or two &#8216;Code&#8217; columns and must have exactly one
+&#8216;shear_resis&#8217; column and exactly one &#8216;n_val&#8217; column</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>(ESRIAsc) vegetation map updated with new values corresponding to</dt>
+<dd>succession rules</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="cord.ripcas_dflow.ripcas_with_dflow_io">
+<code class="descclassname">cord.ripcas_dflow.</code><code class="descname">ripcas_with_dflow_io</code><span class="sig-paren">(</span><em>vegetation_map</em>, <em>zone_map</em>, <em>shear_nc_path</em>, <em>ripcas_required_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/ripcas_dflow.html#ripcas_with_dflow_io"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.ripcas_dflow.ripcas_with_dflow_io" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper for using DFLOW input/output with ripcas. Note instead of
+shear_map we have shear_nc_path. Use shear_mesh_to_asc to convert the
+shear_mesh that comes from D-FLOW to a shear_map for input to ripcas.
+When ripcas finishes its vegetation updates, convert the updated
+vegetation map to a Manning n-value map for use by DFLOW. See the
+ripcas function below for more details on the model and arguments.</p>
+<dl class="docutils">
+<dt>Arguments:</dt>
+<dd><dl class="first docutils">
+<dt>vegetation_map (ESRIAsc): location on disk or ESRIAsc</dt>
+<dd>representation of the vegetation map</dd>
+<dt>zone_map (ESRIAsc): location on disk or ESRIAsc representation</dt>
+<dd>of the zone map.</dd>
+</dl>
+<p>shear_nc_path (str): location on disk of DFLOW shear output netCDF
+ripcas_required_data (str): Excel spreadsheet of data needed for</p>
+<blockquote class="last">
+<div>ripcas run. Encompasses the landscape model for the watershed.
+Can have one or two &#8216;Code&#8217; columns and must have exactly one
+&#8216;shear_resis&#8217; column and exactly one &#8216;n_val&#8217; column</div></blockquote>
+</dd>
+<dt>Returns:</dt>
+<dd>(Pol): polygon representation of the map of nvalues</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="cord.ripcas_dflow.shear_mesh_to_asc">
+<code class="descclassname">cord.ripcas_dflow.</code><code class="descname">shear_mesh_to_asc</code><span class="sig-paren">(</span><em>shear_nc_path</em>, <em>header_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/ripcas_dflow.html#shear_mesh_to_asc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.ripcas_dflow.shear_mesh_to_asc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract flow element values and locations from the dflow output netcdf
+and project these onto the grid defined by the corner of the
+grid defined by the lower-left corner of the bounding box and the
+cell size. The results are saved in ESRI .asc format to asc_out_path.</p>
+<dl class="docutils">
+<dt>Arguments:</dt>
+<dd><p class="first">shear_nc_path (str): location of the dflow netcdf on disk
+header_dict (dict): dictionary with six fields as required to build</p>
+<blockquote class="last">
+<div>ESRIAsc; NODATA_value, cellsize, ncols, nrows, yllcorner, xllcorner</div></blockquote>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>(ESRIAsc) representation of gridded representation of the mesh shear</dt>
+<dd>stress data output from dflow</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="cord.ripcas_dflow.veg2n">
+<code class="descclassname">cord.ripcas_dflow.</code><code class="descname">veg2n</code><span class="sig-paren">(</span><em>veg_map</em>, <em>ripcas_required_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/ripcas_dflow.html#veg2n"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.ripcas_dflow.veg2n" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creat an ESRIAsc representation of an ESRI .asc file that contains roughness
+values substituted for vegetation codes. The translation is found in the
+Excel file found at lookup_path.</p>
+<dl class="docutils">
+<dt>Arguments:</dt>
+<dd><p class="first">veg_map (ESRIAsc): path to ESRI .asc file with vegetation codes
+ripcas_required_data (str): path to Excel file with vegetation codes mapped</p>
+<blockquote class="last">
+<div><p>to Manning&#8217;s roughness n-values. The Excel file must have four
+columns with headers</p>
+<blockquote>
+<div>Code    shear_resis     Code    n_val</div></blockquote>
+<p>on the first sheet.</p>
+</div></blockquote>
+</dd>
+<dt>Raises:</dt>
+<dd><dl class="first last docutils">
+<dt>(ValueError) if there is a vegetation code in the .asc that is not</dt>
+<dd>found in the lookup table</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd>(ESRIAsc) ESRI .asc map of Manning&#8217;s n-values in place of veg codes</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">CoRD</a></h1>
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=VirtualWatershed&repo=CoRD&type=watch&count=true&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="20px"></iframe>
+</p>
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=VirtualWatershed&type=follow"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="20px"></iframe>
+  <!--<a href="https://github.com/VirtualWatershed/cord">CoRD on GitHub</a>-->
+</p>
+
+
+
+
+<h3>Navigation</h3>
+<div id="sidebar_toctree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-cord.modelrun">cord/modelrun.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-cord.ripcas_dflow">cord/ripcas_dflow.py</a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+<ul class="footer_nav">
+      <li class="prev">
+        Previous topic: <a href="usage.html">Usage</a>
+      </li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="usage.html" title="previous chapter">Usage</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Matthew Turner, Sarah Miller, Angela Gregory, Mark Stone, and Dan Cadol.
+
+    
+  </body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Install Instructions &mdash; CoRD</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="_static/vwlogo_grey_favicon-32.png"/>
+    <link rel="top" title="CoRD" href="index.html" />
+    <link rel="next" title="Usage" href="usage.html" />
+    <link rel="prev" title="Welcome to CoRD’s documentation!" href="index.html" />
+<link href='https://fonts.googleapis.com/css?family=Ubuntu+Mono|Pacifico|Open+Sans|Metrophobic' rel='stylesheet' type='text/css'>
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="install-instructions">
+<span id="install"></span><h1>Install Instructions<a class="headerlink" href="#install-instructions" title="Permalink to this headline">¶</a></h1>
+<p>You will need to install
+HDF5 libraries v1.8.16 and the NetCDF libraries v4.3.3.1. On OS X for example,
+this can be done using <a class="reference external" href="http://brew.sh">Homebrew</a>. On Linux, use your package
+manager, making sure to install the version that includes required libraries.
+On Debian/Ubuntu&#8217;s apt-get this is done by appending the <code class="docutils literal"><span class="pre">dev</span></code> tag in the
+proper way. Refer to the online documentation for your package management tool
+to learn how to install a specific software version. To install the <code class="docutils literal"><span class="pre">cord</span></code>
+package on OS X you may need to set some environment variables by running the
+following commands.  You&#8217;ll know you have to run these if the installation
+steps below fail.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="nb">export</span> <span class="nv">HDF5_INCDIR</span><span class="o">=</span>/usr/local/include/
+<span class="nb">export</span> <span class="nv">USE_NCCONFIG</span><span class="o">=</span>0
+</pre></div>
+</div>
+<p>Once you have these two dependencies installed, you can install the package
+by running</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pip install cord
+</pre></div>
+</div>
+<p>You can verify that the installation completed successfully by running</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>cord
+</pre></div>
+</div>
+<p>which should print the following help message</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>Usage: cord [OPTIONS] COMMAND [ARGS]
+
+    Options:
+      --debug
+      --logfile TEXT
+      --help          Show this message and exit.
+
+    Commands:
+      from_config  Run CoRD with params from &lt;config_file&gt;
+      interactive  Run CoRD interactively or with options
+      post_hs      Post the model run data to HydroShare
+</pre></div>
+</div>
+<div class="section" id="install-with-anaconda">
+<h2>Install with Anaconda<a class="headerlink" href="#install-with-anaconda" title="Permalink to this headline">¶</a></h2>
+<p>On CARC we have used Anaconda to allow individual users to install the proper
+version of the dependencies which may differ from the version that is installed
+for all system users. Please contact your administrator to help you install the
+requirements that are listed in the
+<a class="reference external" href="https://github.com/VirtualWatershed/CoRD/blob/master/requirements.txt">requirements.txt file</a>
+of the repository. After the requirements have been installed and you have
+activated your conda environment appropriately, you can run <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cord</span></code>
+as explained above.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">CoRD</a></h1>
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=VirtualWatershed&repo=CoRD&type=watch&count=true&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="20px"></iframe>
+</p>
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=VirtualWatershed&type=follow"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="20px"></iframe>
+  <!--<a href="https://github.com/VirtualWatershed/cord">CoRD on GitHub</a>-->
+</p>
+
+
+
+
+<h3>Navigation</h3>
+<div id="sidebar_toctree">
+  <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Install Instructions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#install-with-anaconda">Install with Anaconda</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+</div>
+<ul class="footer_nav">
+      <li class="prev">
+        Previous topic: <a href="index.html">Welcome to CoRD&#8217;s documentation!</a>
+      </li>
+      <li class="next">
+        Next topic: <a href="usage.html">Usage</a>
+      </li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to CoRD&#8217;s documentation!</a></li>
+      <li>Next: <a href="usage.html" title="next chapter">Usage</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Matthew Turner, Sarah Miller, Angela Gregory, Mark Stone, and Dan Cadol.
+
+    
+  </body>
+</html>
