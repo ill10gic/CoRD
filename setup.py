@@ -1,7 +1,6 @@
 from setuptools import setup, find_packages
 
 requires = [
-    'appnope>=0.1.0',
     'backports.shutil-get-terminal-size>=1.0.0',
     'click>=6.6',
     'configparser>=3.3.0.post2',
@@ -13,9 +12,9 @@ requires = [
     'h5py>=2.5.0',
     'hs-restclient>=1.2.2',
     'netCDF4>=1.2.3.1',
+    'numpy==1.11.0',
     'scipy==0.17.0',
     'nose>=1.3.7',
-    'numpy==1.11.0',
     'oauthlib>=1.1.1',
     'pandas>=0.17.1',
     'pathlib2>=2.1.0',
@@ -41,7 +40,7 @@ tests_require = [
 setup(
     name='cord',
     description='Coupled RipCAS-DFLOW for Vegetation and Hydrology of Streams',
-    version='0.1',
+    version='0.1.1',
     author_email='maturner01@gmail.com',
     author='Matthew Turner',
     license='BSD3',

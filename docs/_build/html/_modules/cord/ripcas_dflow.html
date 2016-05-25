@@ -1,0 +1,584 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>cord.ripcas_dflow &mdash; CoRD</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="../../_static/vwlogo_grey_favicon-32.png"/>
+    <link rel="top" title="CoRD" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+<link href='https://fonts.googleapis.com/css?family=Ubuntu+Mono|Pacifico|Open+Sans|Metrophobic' rel='stylesheet' type='text/css'>
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for cord.ripcas_dflow</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Utilities for interacting with dflow and ripcas models</span>
+
+<span class="sd">Author:</span>
+<span class="sd">    Matthew A. Turner &lt;maturner01@gmail.com&gt;</span>
+
+<span class="sd">Date:</span>
+<span class="sd">    9 May 2016</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">from</span> <span class="nn">netCDF4</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">concatenate</span><span class="p">,</span> <span class="n">fromstring</span><span class="p">,</span> <span class="n">meshgrid</span><span class="p">,</span>
+                   <span class="n">reshape</span><span class="p">,</span> <span class="n">flipud</span><span class="p">,</span> <span class="n">isnan</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">griddata</span>
+<span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">read_table</span><span class="p">,</span> <span class="n">read_excel</span><span class="p">,</span> <span class="n">Series</span>
+
+
+<div class="viewcode-block" id="ripcas_with_dflow_io"><a class="viewcode-back" href="../../api.html#cord.ripcas_dflow.ripcas_with_dflow_io">[docs]</a><span class="k">def</span> <span class="nf">ripcas_with_dflow_io</span><span class="p">(</span><span class="n">vegetation_map</span><span class="p">,</span> <span class="n">zone_map</span><span class="p">,</span>
+                         <span class="n">shear_nc_path</span><span class="p">,</span> <span class="n">ripcas_required_data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper for using DFLOW input/output with ripcas. Note instead of</span>
+<span class="sd">    shear_map we have shear_nc_path. Use shear_mesh_to_asc to convert the</span>
+<span class="sd">    shear_mesh that comes from D-FLOW to a shear_map for input to ripcas.</span>
+<span class="sd">    When ripcas finishes its vegetation updates, convert the updated</span>
+<span class="sd">    vegetation map to a Manning n-value map for use by DFLOW. See the</span>
+<span class="sd">    ripcas function below for more details on the model and arguments.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        vegetation_map (ESRIAsc): location on disk or ESRIAsc</span>
+<span class="sd">            representation of the vegetation map</span>
+<span class="sd">        zone_map (ESRIAsc): location on disk or ESRIAsc representation</span>
+<span class="sd">            of the zone map.</span>
+<span class="sd">        shear_nc_path (str): location on disk of DFLOW shear output netCDF</span>
+<span class="sd">        ripcas_required_data (str): Excel spreadsheet of data needed for</span>
+<span class="sd">            ripcas run. Encompasses the landscape model for the watershed.</span>
+<span class="sd">            Can have one or two &#39;Code&#39; columns and must have exactly one</span>
+<span class="sd">            &#39;shear_resis&#39; column and exactly one &#39;n_val&#39; column</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (Pol): polygon representation of the map of nvalues</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vegetation_map</span><span class="p">,</span> <span class="n">ESRIAsc</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;vegetation_map must be an ESRIAsc instance&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">zone_map</span><span class="p">,</span> <span class="n">ESRIAsc</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;vegetation_map must be an ESRIAsc instance&#39;</span><span class="p">)</span>
+
+    <span class="n">shear_map</span> <span class="o">=</span> <span class="n">shear_mesh_to_asc</span><span class="p">(</span><span class="n">shear_nc_path</span><span class="p">,</span> <span class="n">vegetation_map</span><span class="o">.</span><span class="n">header_dict</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">Pol</span><span class="o">.</span><span class="n">from_ascii</span><span class="p">(</span>
+        <span class="n">veg2n</span><span class="p">(</span>
+            <span class="n">ripcas</span><span class="p">(</span>
+                <span class="n">vegetation_map</span><span class="p">,</span> <span class="n">zone_map</span><span class="p">,</span> <span class="n">shear_map</span><span class="p">,</span> <span class="n">ripcas_required_data</span>
+            <span class="p">),</span> <span class="n">ripcas_required_data</span>
+        <span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ripcas"><a class="viewcode-back" href="../../api.html#cord.ripcas_dflow.ripcas">[docs]</a><span class="k">def</span> <span class="nf">ripcas</span><span class="p">(</span><span class="n">vegetation_map</span><span class="p">,</span> <span class="n">zone_map</span><span class="p">,</span> <span class="n">shear_map</span><span class="p">,</span> <span class="n">ripcas_required_data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simple version of the CASiMiR model for vegetation succession. Before the</span>
+<span class="sd">    model is run, we check that all the unique values from vegetation_map are</span>
+<span class="sd">    present in the shear_resistance_dict. Otherwise the process will fail</span>
+<span class="sd">    wherever the vegetation map value is not present in the dictionary</span>
+<span class="sd">    on lookup.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        vegetation_map (str or ESRIAsc): location on disk or ESRIAsc</span>
+<span class="sd">            representation of the vegetation map</span>
+<span class="sd">        zone_map (str or ESRIAsc): location on disk or ESRIAsc representation</span>
+<span class="sd">            of the zone map.</span>
+<span class="sd">        shear_map (str or ESRIAsc): location on disk or ESRIAsc representation</span>
+<span class="sd">            of the shear stress map</span>
+<span class="sd">        ripcas_required_data (str): Excel spreadsheet of data needed for</span>
+<span class="sd">            ripcas run. Encompasses the landscape model for the watershed.</span>
+<span class="sd">            Can have one or two &#39;Code&#39; columns and must have exactly one</span>
+<span class="sd">            &#39;shear_resis&#39; column and exactly one &#39;n_val&#39; column</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (ESRIAsc) vegetation map updated with new values corresponding to</span>
+<span class="sd">            succession rules</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vegetation_map</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+        <span class="n">vegetation_map</span> <span class="o">=</span> <span class="n">ESRIAsc</span><span class="p">(</span><span class="n">vegetation_map</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vegetation_map</span><span class="p">,</span> <span class="n">ESRIAsc</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;vegetation_map must be type str or ESRIAsc&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shear_map</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+        <span class="n">shear_map</span> <span class="o">=</span> <span class="n">ESRIAsc</span><span class="p">(</span><span class="n">shear_map</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shear_map</span><span class="p">,</span> <span class="n">ESRIAsc</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;shear_map must be type str or ESRIAsc&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">zone_map</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+        <span class="n">zone_map</span> <span class="o">=</span> <span class="n">ESRIAsc</span><span class="p">(</span><span class="n">zone_map</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">zone_map</span><span class="p">,</span> <span class="n">ESRIAsc</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;zone_map must be type str of ESRIAsc, not &#39;</span> <span class="o">+</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">zone_map</span><span class="p">)))</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ripcas_required_data</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+        <span class="n">cas_df</span> <span class="o">=</span> <span class="n">read_excel</span><span class="p">(</span><span class="n">ripcas_required_data</span><span class="p">)</span>
+
+        <span class="c1"># sanity check to make sure our lookup is correct</span>
+        <span class="k">assert</span> <span class="s1">&#39;Code.1&#39;</span> <span class="ow">in</span> <span class="n">cas_df</span>  <span class="c1"># TODO generalize later</span>
+        <span class="k">assert</span> <span class="s1">&#39;shear_resis&#39;</span> <span class="ow">in</span> <span class="n">cas_df</span>
+
+        <span class="n">shear_resistance_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="nb">zip</span><span class="p">(</span><span class="n">cas_df</span><span class="p">[</span><span class="s1">&#39;Code.1&#39;</span><span class="p">],</span> <span class="n">cas_df</span><span class="p">[</span><span class="s1">&#39;shear_resis&#39;</span><span class="p">])</span>
+        <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;shear_resistance_dict must be type str&#39;</span><span class="p">)</span>
+
+    <span class="c1"># init the vegetation map that will be returned</span>
+    <span class="n">ret_veg_map</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">vegetation_map</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">shear_map</span><span class="o">.</span><span class="n">data</span><span class="p">)):</span>
+        <span class="c1"># determine whether or not the vegetation should be reset to age zero</span>
+        <span class="n">veg_val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vegetation_map</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">veg_val</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+
+            <span class="n">is_not_nodata</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">shear_map</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">!=</span> <span class="n">shear_map</span><span class="o">.</span><span class="n">NODATA_value</span> <span class="ow">and</span>
+                <span class="n">vegetation_map</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">!=</span> <span class="n">vegetation_map</span><span class="o">.</span><span class="n">NODATA_value</span>
+            <span class="p">)</span>
+
+            <span class="n">veg_needs_reset</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">is_not_nodata</span> <span class="ow">and</span>
+                <span class="n">shear_map</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">shear_resistance_dict</span><span class="p">[</span><span class="n">veg_val</span><span class="p">]</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">veg_needs_reset</span><span class="p">:</span>
+                <span class="c1"># reset vegetation to age zero with veg type appropriate to zone</span>
+                <span class="n">ret_veg_map</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">zone_map</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+            <span class="c1"># whether or not the vegetation was destroyed, age by one</span>
+            <span class="k">if</span> <span class="n">is_not_nodata</span><span class="p">:</span>
+
+                <span class="n">ret_veg_map</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">ret_veg_map</span></div>
+
+
+<div class="viewcode-block" id="shear_mesh_to_asc"><a class="viewcode-back" href="../../api.html#cord.ripcas_dflow.shear_mesh_to_asc">[docs]</a><span class="k">def</span> <span class="nf">shear_mesh_to_asc</span><span class="p">(</span><span class="n">shear_nc_path</span><span class="p">,</span> <span class="n">header_dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract flow element values and locations from the dflow output netcdf</span>
+<span class="sd">    and project these onto the grid defined by the corner of the</span>
+<span class="sd">    grid defined by the lower-left corner of the bounding box and the</span>
+<span class="sd">    cell size. The results are saved in ESRI .asc format to asc_out_path.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        shear_nc_path (str): location of the dflow netcdf on disk</span>
+<span class="sd">        header_dict (dict): dictionary with six fields as required to build</span>
+<span class="sd">            ESRIAsc; NODATA_value, cellsize, ncols, nrows, yllcorner, xllcorner</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (ESRIAsc) representation of gridded representation of the mesh shear</span>
+<span class="sd">            stress data output from dflow</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dflow_ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">shear_nc_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+
+    <span class="c1"># the mesh locations are the x and y centers of the Flow (Finite) Elements</span>
+    <span class="n">mesh_x</span> <span class="o">=</span> <span class="n">dflow_ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;FlowElem_xcc&#39;</span><span class="p">][:]</span>
+    <span class="n">mesh_y</span> <span class="o">=</span> <span class="n">dflow_ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;FlowElem_ycc&#39;</span><span class="p">][:]</span>
+    <span class="n">mesh_shear</span> <span class="o">=</span> <span class="n">dflow_ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;taus&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># take the last timestep</span>
+
+    <span class="n">cellsize</span> <span class="o">=</span> <span class="n">header_dict</span><span class="p">[</span><span class="s1">&#39;cellsize&#39;</span><span class="p">]</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">array</span><span class="p">([</span><span class="n">header_dict</span><span class="p">[</span><span class="s1">&#39;xllcorner&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="n">cellsize</span><span class="p">)</span>
+               <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">header_dict</span><span class="p">[</span><span class="s1">&#39;ncols&#39;</span><span class="p">])])</span>
+
+    <span class="n">y</span> <span class="o">=</span> <span class="n">array</span><span class="p">([</span><span class="n">header_dict</span><span class="p">[</span><span class="s1">&#39;yllcorner&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="n">cellsize</span><span class="p">)</span>
+               <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">header_dict</span><span class="p">[</span><span class="s1">&#39;nrows&#39;</span><span class="p">])])</span>
+
+    <span class="n">grid_x</span><span class="p">,</span> <span class="n">grid_y</span> <span class="o">=</span> <span class="n">meshgrid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+    <span class="c1"># use linear interp so we don&#39;t have to install natgrid</span>
+    <span class="n">asc_mat</span> <span class="o">=</span> <span class="n">griddata</span><span class="p">((</span><span class="n">mesh_x</span><span class="p">,</span> <span class="n">mesh_y</span><span class="p">),</span> <span class="n">mesh_shear</span><span class="p">,</span> <span class="p">(</span><span class="n">grid_x</span><span class="p">,</span> <span class="n">grid_y</span><span class="p">))</span>
+
+    <span class="c1"># not sure why, but this makes it align with the original vegetation map</span>
+    <span class="n">asc_mat</span> <span class="o">=</span> <span class="n">flipud</span><span class="p">(</span><span class="n">asc_mat</span><span class="p">)</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">reshape</span><span class="p">(</span><span class="n">asc_mat</span><span class="p">,</span> <span class="p">(</span><span class="n">header_dict</span><span class="p">[</span><span class="s1">&#39;ncols&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">header_dict</span><span class="p">[</span><span class="s1">&#39;nrows&#39;</span><span class="p">]))</span>
+
+    <span class="n">data</span><span class="p">[</span><span class="n">isnan</span><span class="p">(</span><span class="n">data</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">header_dict</span><span class="p">[</span><span class="s1">&#39;NODATA_value&#39;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">ESRIAsc</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">Series</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="o">**</span><span class="n">header_dict</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="veg2n"><a class="viewcode-back" href="../../api.html#cord.ripcas_dflow.veg2n">[docs]</a><span class="k">def</span> <span class="nf">veg2n</span><span class="p">(</span><span class="n">veg_map</span><span class="p">,</span> <span class="n">ripcas_required_data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creat an ESRIAsc representation of an ESRI .asc file that contains roughness</span>
+<span class="sd">    values substituted for vegetation codes. The translation is found in the</span>
+<span class="sd">    Excel file found at lookup_path.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        veg_map (ESRIAsc): path to ESRI .asc file with vegetation codes</span>
+<span class="sd">        ripcas_required_data (str): path to Excel file with vegetation codes mapped</span>
+<span class="sd">            to Manning&#39;s roughness n-values. The Excel file must have four</span>
+<span class="sd">            columns with headers</span>
+<span class="sd">                Code	shear_resis	Code	n_val</span>
+<span class="sd">            on the first sheet.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        (ValueError) if there is a vegetation code in the .asc that is not</span>
+<span class="sd">            found in the lookup table</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (ESRIAsc) ESRI .asc map of Manning&#39;s n-values in place of veg codes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">veg_map</span><span class="p">,</span> <span class="n">ESRIAsc</span><span class="p">),</span> \
+        <span class="s2">&quot;veg_map must be an instance of ESRIAsc&quot;</span>
+
+    <span class="n">cas_df</span> <span class="o">=</span> <span class="n">read_excel</span><span class="p">(</span><span class="n">ripcas_required_data</span><span class="p">)</span>
+    <span class="n">veg2n_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="nb">zip</span><span class="p">(</span><span class="n">cas_df</span><span class="p">[</span><span class="s1">&#39;Code.1&#39;</span><span class="p">],</span> <span class="n">cas_df</span><span class="p">[</span><span class="s1">&#39;n_val&#39;</span><span class="p">])</span>
+    <span class="p">)</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">veg_map</span><span class="p">)</span>
+
+    <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">veg_map</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">veg2n_dict</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<span class="k">class</span> <span class="nc">ESRIAsc</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">nrows</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">xllcorner</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">yllcorner</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cellsize</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">NODATA_value</span><span class="o">=-</span><span class="mi">9999</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span> <span class="o">=</span> <span class="n">file_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncols</span> <span class="o">=</span> <span class="n">ncols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nrows</span> <span class="o">=</span> <span class="n">nrows</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xllcorner</span> <span class="o">=</span> <span class="n">xllcorner</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yllcorner</span> <span class="o">=</span> <span class="n">yllcorner</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cellsize</span> <span class="o">=</span> <span class="n">cellsize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">NODATA_value</span> <span class="o">=</span> <span class="n">NODATA_value</span>
+
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">Series</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;data value must be type pandas.Series&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="c1"># if a file is provided, the file metadata will overwrite any</span>
+        <span class="c1"># user-provided kwargs</span>
+        <span class="k">if</span> <span class="n">file_path</span><span class="p">:</span>
+
+            <span class="k">def</span> <span class="nf">getnextval</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">ncols</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">getnextval</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nrows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">getnextval</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xllcorner</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">getnextval</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">yllcorner</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">getnextval</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cellsize</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">getnextval</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">NODATA_value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">getnextval</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+
+            <span class="c1"># should not be necessary for well-formed ESRI files, but</span>
+            <span class="c1"># seems to be for CASiMiR</span>
+            <span class="n">data_str</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()])</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">Series</span><span class="p">(</span><span class="n">fromstring</span><span class="p">(</span><span class="n">data_str</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">))</span>
+
+            <span class="n">colrow_prod</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrows</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">ncols</span>
+
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="n">colrow_prod</span><span class="p">,</span> \
+                <span class="s2">&quot;length of .asc data does not equal product of ncols * nrows&quot;</span> \
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">ncols: {}, nrows: {}, ncols*nrows: {} len(data): {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ncols</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrows</span><span class="p">,</span> <span class="n">colrow_prod</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">header_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">ncols</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ncols</span><span class="p">,</span>
+                    <span class="n">nrows</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nrows</span><span class="p">,</span>
+                    <span class="n">xllcorner</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xllcorner</span><span class="p">,</span>
+                    <span class="n">yllcorner</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">yllcorner</span><span class="p">,</span>
+                    <span class="n">cellsize</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cellsize</span><span class="p">,</span>
+                    <span class="n">NODATA_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NODATA_value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">as_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">replace_nodata_val</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convenience method to give 2D numpy.ndarray representation. If</span>
+<span class="sd">        replace_nodata_val is given, replace all NODATA_value entries with</span>
+<span class="sd">        it.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            replace_nodata_val (float): value with which to replace</span>
+<span class="sd">                NODATA_value entries</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (numpy.ndarray) matrix representation of the data in the .asc</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrows</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncols</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">replace_nodata_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">ret</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">NODATA_value</span><span class="p">]</span> <span class="o">=</span> <span class="n">replace_nodata_val</span>
+
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">write_path</span><span class="p">):</span>
+        <span class="c1"># replace nan with NODATA_value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NODATA_value</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">write_path</span><span class="p">,</span> <span class="s1">&#39;w+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;ncols {}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncols</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;nrows {}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrows</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;xllcorner {}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xllcorner</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;yllcorner {}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">yllcorner</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;cellsize {}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cellsize</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;NODATA_value {}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NODATA_value</span><span class="p">))</span>
+
+            <span class="c1"># prob not most efficient, but CASiMiR requires</span>
+            <span class="c1"># ESRI Ascii w/ newlines</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">row</span><span class="p">])</span>
+                        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">()</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">ESRIAsc</span><span class="p">):</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncols</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">ncols</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrows</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">nrows</span> <span class="ow">and</span> <span class="n">ret</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xllcorner</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">xllcorner</span> <span class="ow">and</span> <span class="n">ret</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">yllcorner</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">yllcorner</span> <span class="ow">and</span> <span class="n">ret</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cellsize</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">cellsize</span> <span class="ow">and</span> <span class="n">ret</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">NODATA_value</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">NODATA_value</span> <span class="ow">and</span> <span class="n">ret</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="ow">and</span> <span class="n">ret</span>
+
+            <span class="k">return</span> <span class="n">ret</span>
+
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+
+<div class="viewcode-block" id="Pol"><a class="viewcode-back" href="../../api.html#cord.ripcas_dflow.Pol">[docs]</a><span class="k">class</span> <span class="nc">Pol</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper creating and/or reading the .pol files of n-values for DFLOW</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_dflow_file</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">pol_path</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+        <span class="n">c</span> <span class="o">=</span> <span class="n">cls</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">pol_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span>
+                <span class="n">pol_path</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">skipinitialspace</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;   &#39;</span><span class="p">,</span>
+                <span class="n">header</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">],</span> <span class="n">engine</span><span class="o">=</span><span class="s1">&#39;python&#39;</span>
+            <span class="p">)</span>
+
+            <span class="n">c</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">z</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">c</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Pol.from_ascii"><a class="viewcode-back" href="../../api.html#cord.ripcas_dflow.Pol.from_ascii">[docs]</a>    <span class="k">def</span> <span class="nf">from_ascii</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">asc</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate a polygon file from ESRIAsc</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asc</span><span class="p">,</span> <span class="n">ESRIAsc</span><span class="p">),</span> <span class="s2">&quot;asc input must be ESRIAsc&quot;</span>
+
+        <span class="n">c</span> <span class="o">=</span> <span class="n">cls</span><span class="p">()</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">meshgrid</span><span class="p">(</span>
+            <span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">asc</span><span class="o">.</span><span class="n">xllcorner</span> <span class="o">+</span> <span class="n">asc</span><span class="o">.</span><span class="n">cellsize</span><span class="o">*</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">asc</span><span class="o">.</span><span class="n">ncols</span><span class="p">)]</span>
+            <span class="p">),</span>
+            <span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">asc</span><span class="o">.</span><span class="n">yllcorner</span> <span class="o">+</span> <span class="n">asc</span><span class="o">.</span><span class="n">cellsize</span><span class="o">*</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">asc</span><span class="o">.</span><span class="n">nrows</span><span class="p">)]</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">c</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">concatenate</span><span class="p">(</span><span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">concatenate</span><span class="p">(</span><span class="n">grid</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">asc</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">c</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_river_geometry_file</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">geom_file</span><span class="p">):</span>
+
+        <span class="n">c</span> <span class="o">=</span> <span class="n">cls</span><span class="p">()</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span><span class="n">geom_file</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;\s+&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s1">&#39;python&#39;</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">df</span>
+
+        <span class="n">c</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">Y</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">Z</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">c</span>
+
+<div class="viewcode-block" id="Pol.write"><a class="viewcode-back" href="../../api.html#cord.ripcas_dflow.Pol.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        write the Pol to file</span>
+
+<span class="sd">        Returns: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">),</span> \
+                <span class="s2">&quot;Lengths of columns is not equal!&quot;</span>
+
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;L1</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+                <span class="c1"># weird, but apparently what DFLOW requires</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="o">*</span><span class="mi">4</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span><span class="o">*</span><span class="mi">5</span> <span class="o">+</span> <span class="s1">&#39;3</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">lines</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s1">&#39; &#39;</span><span class="o">*</span><span class="mi">3</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39; &#39;</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;{:1.7e}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">el</span><span class="p">])</span>
+                    <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">l</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Trying to write an incomplete polygon file&quot;</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Pol</span><span class="p">):</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">ret</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">ret</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">z</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">ret</span>
+
+        <span class="k">return</span> <span class="bp">NotImplemented</span></div>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="n">help_msg</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">dflow_ripcas v1.0  -  Matthew Turner &lt;maturner01@gmail.com&gt;</span>
+
+<span class="s1">Usage:</span>
+
+<span class="s1">    python jemez/dflow_ripcas.py &lt;path-to-shear-nc&gt; &lt;path-to-save-output-vegmap&gt;</span>
+
+<span class="s1">Example:</span>
+
+<span class="s1">    $ python jemez/dflow_ripcas.py ~/local_data/dflow_outputs/jemez_r02_map.nc ~/local_data/ripcas_out/veg-out-1.asc</span>
+<span class="s1">    &#39;&#39;&#39;</span>
+
+    <span class="kn">import</span> <span class="nn">sys</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">shear_nc</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">vegout_path</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">shear_nc</span> <span class="o">==</span> <span class="s1">&#39;-h&#39;</span><span class="p">:</span>
+            <span class="k">print</span> <span class="n">help_msg</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">print</span> <span class="n">help_msg</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">vegetation_map</span> <span class="o">=</span> <span class="n">ESRIAsc</span><span class="p">(</span><span class="s1">&#39;data/vegclass_2z.asc&#39;</span><span class="p">)</span>
+    <span class="n">zone_map</span> <span class="o">=</span> <span class="n">ESRIAsc</span><span class="p">(</span><span class="s1">&#39;data/zonemap_2z.asc&#39;</span><span class="p">)</span>
+    <span class="n">ripcas_data</span> <span class="o">=</span> <span class="s1">&#39;data/ripcas-data-requirements.xlsx&#39;</span>
+
+    <span class="n">vegout</span> <span class="o">=</span> <span class="n">ripcas_with_dflow_io</span><span class="p">(</span>
+        <span class="n">vegetation_map</span><span class="p">,</span> <span class="n">zone_map</span><span class="p">,</span> <span class="n">shear_nc</span><span class="p">,</span> <span class="n">ripcas_data</span>
+    <span class="p">)</span>
+
+    <span class="n">vegout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">vegout_path</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">CoRD</a></h1>
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=VirtualWatershed&repo=CoRD&type=watch&count=true&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="20px"></iframe>
+</p>
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=VirtualWatershed&type=follow"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="20px"></iframe>
+  <!--<a href="https://github.com/VirtualWatershed/cord">CoRD on GitHub</a>-->
+</p>
+
+
+
+
+<h3>Navigation</h3>
+<div id="sidebar_toctree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
+</ul>
+
+</div>
+<ul class="footer_nav">
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Matthew Turner, Sarah Miller, Angela Gregory, Mark Stone, and Dan Cadol.
+
+    
+  </body>
+</html>

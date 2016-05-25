@@ -1,0 +1,334 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Usage &mdash; CoRD</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="_static/vwlogo_grey_favicon-32.png"/>
+    <link rel="top" title="CoRD" href="index.html" />
+    <link rel="next" title="API Reference" href="api.html" />
+    <link rel="prev" title="Install Instructions" href="install.html" />
+<link href='https://fonts.googleapis.com/css?family=Ubuntu+Mono|Pacifico|Open+Sans|Metrophobic' rel='stylesheet' type='text/css'>
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul class="simple">
+</ul>
+</div>
+<p>Since CoRD was originally designed for use in a cluster computing environment,
+the initial way we present here for using it is through a command-line
+interface. If a GUI would be helpful, please tell us by <a class="reference external" href="https://github.com/VirtualWatershed/cord/issues">creating a new issue on
+GitHub</a>.</p>
+<p>Currently there are two things you can do using <code class="docutils literal"><span class="pre">cord</span></code>.</p>
+<ol class="arabic simple">
+<li>Run a coupled RipCAS-DFLOW model</li>
+<li>Post the outputs of the RipCAS-DFLOW model to HydroShare</li>
+</ol>
+<p>HydroShare is a nice web app for storing, sharing, and publishing data. It also
+provides a Python API that we use internally with CoRD. If you want to be able
+to push data to HydroShare you&#8217;ll have to <a class="reference external" href="https://hydroshare.org/sign-up">sign up for a HydroShare account</a>.</p>
+<p>We offer two different options for running a coupled RipCAS-DFLOW model: the
+first is <a class="reference internal" href="#from-a-config-file"><span class="std std-ref">Run a coupled model with config file parameters</span></a> and the second is <a class="reference internal" href="#interactive-mode"><span class="std std-ref">Use the interactive command to run CoRD</span></a>
+where the user can either enter required information as command-line options or
+CoRD will prompt them as necessary. The following guide introduces the three
+commands for the two methods of running RipCAS-DFLOW and posting data to
+HydroShare.</p>
+<div class="section" id="quick-reference-guide">
+<h2>Quick Reference Guide<a class="headerlink" href="#quick-reference-guide" title="Permalink to this headline">¶</a></h2>
+<p>If you are using CoRD and want to see the built-in help you can run</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>cord
+</pre></div>
+</div>
+<p>Which will print the help</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>Usage: cord [OPTIONS] COMMAND [ARGS]
+
+    Options:
+      --debug
+      --logfile TEXT
+      --help          Show this message and exit.
+
+    Commands:
+      from_config  Run CoRD with params from &lt;config_file&gt;
+      interactive  Run CoRD interactively or with options
+      post_hs      Post the model run data to HydroShare
+</pre></div>
+</div>
+<div class="section" id="quick-note-on-the-logfile-option">
+<h3>Quick note on the &#8211;logfile option<a class="headerlink" href="#quick-note-on-the-logfile-option" title="Permalink to this headline">¶</a></h3>
+<p>The most important option to note here is the ability to set the logfile. If you
+don&#8217;t set the logfile, it will automatically be set to the full
+<code class="docutils literal"><span class="pre">data_directory</span></code> path with slashes replaced with dashes with extension
+<code class="docutils literal"><span class="pre">.log</span></code>. This can be pretty ugly if you are working with many modelruns at
+once. This option works with the <code class="docutils literal"><span class="pre">from_config</span></code> and <code class="docutils literal"><span class="pre">interactive</span></code> commands.
+There is no log file generated</p>
+</div>
+<div class="section" id="help-for-individual-commands">
+<h3>Help for individual commands<a class="headerlink" href="#help-for-individual-commands" title="Permalink to this headline">¶</a></h3>
+<p>You can also get help messages for individual commands. For example, to get help
+on the post-to-HydroShare command, <code class="docutils literal"><span class="pre">post_hs</span></code> you could type</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>cord post_hs --help
+</pre></div>
+</div>
+<p>and get this help message</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>Usage: cord post_hs [OPTIONS]
+
+  Post the model run data to HydroShare
+
+Options:
+  --username TEXT
+  --password TEXT
+  --modelrun-dir TEXT
+  --include-shear-nc BOOLEAN
+  --resource-title TEXT
+  -k, --keyword TEXT
+  --help                      Show this message and exit.
+</pre></div>
+</div>
+</div>
+<div class="section" id="run-a-coupled-model-with-config-file-parameters">
+<span id="from-a-config-file"></span><h3>Run a coupled model with config file parameters<a class="headerlink" href="#run-a-coupled-model-with-config-file-parameters" title="Permalink to this headline">¶</a></h3>
+<p>DFLOW has users provide a configuration file for providing the locations of
+input files, specify parameters, and so on. In that spirit, we allow users to
+specify these sorts of things in a configuration file. Below is the
+configuration template file, which
+can also be <a class="reference download internal" href="_downloads/default.conf.template" download=""><code class="xref download docutils literal"><span class="pre">downloaded</span> <span class="pre">here</span></code></a>.</p>
+<div class="highlight-cfg"><div class="highlight"><pre><span></span><span class="c1"># Default configuration file; customize as necessary.</span>
+<span class="c1">#</span>
+<span class="c1"># To enable syncing with HydroShare, set SYNC_HYDROSHARE to &quot;True&quot; and</span>
+<span class="c1"># add your HydroShare login info.</span>
+
+<span class="k">[General]</span>
+<span class="na">DATA_DIR</span> <span class="o">=</span> <span class="s">debug_data_dir  # must create the directory before running</span>
+<span class="na">INITIAL_VEGETATION_MAP</span> <span class="o">=</span> <span class="s">data/ripcas_inputs/vegclass_2z.asc</span>
+<span class="na">VEGZONE_MAP</span> <span class="o">=</span> <span class="s">data/ripcas_inputs/zonemap_2z.asc</span>
+<span class="na">RIPCAS_REQUIRED_DATA</span> <span class="o">=</span> <span class="s">data/ripcas_inputs/ripcas-data-requirements.xlsx</span>
+<span class="na">PEAK_FLOWS_FILE</span> <span class="o">=</span> <span class="s">data/peak.txt</span>
+<span class="na">GEOMETRY_FILE</span> <span class="o">=</span> <span class="s">data/dflow_inputs/DBC_geometry.xyz</span>
+<span class="na">STREAMBED_ROUGHNESS</span> <span class="o">=</span> <span class="s">0.04</span>
+<span class="na">STREAMBED_SLOPE</span> <span class="o">=</span> <span class="s">0.001</span>
+<span class="c1">#</span>
+<span class="c1"># python import style, e.g. my_dflow_module.my_dflow_fun</span>
+<span class="c1"># defaults to a function that calls qsub dflow_mpi.pbs</span>
+<span class="na">DFLOW_RUN_FUN</span> <span class="o">=</span>
+<span class="c1"># will default to the data_dir with dashes replacing slashes if blank</span>
+<span class="na">LOG_F</span> <span class="o">=</span>
+</pre></div>
+</div>
+<p>This lists all the files and parameters that are required for running CoRD.
+We explain all of these below, but first we will show how to run CoRD with a
+config file and then in the next section we show the equivalent command using
+the <code class="docutils literal"><span class="pre">interactive</span></code> command.</p>
+<p>Once we have our configuration file ready and saved to
+<code class="docutils literal"><span class="pre">/path/to/myconfig.conf</span></code>, for example, run CoRD by running</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>cord from_config /path/to/myconfig.conf
+</pre></div>
+</div>
+</div>
+<div class="section" id="use-the-interactive-command-to-run-cord">
+<span id="interactive-mode"></span><h3>Use the <code class="docutils literal"><span class="pre">interactive</span></code> command to run CoRD<a class="headerlink" href="#use-the-interactive-command-to-run-cord" title="Permalink to this headline">¶</a></h3>
+<p>This command is called &#8220;interactive&#8221; because if not all files and parameters are
+specified as options, CoRD will prompt the user for the values. Here is an
+example of the same command run using the <code class="docutils literal"><span class="pre">from_config</span></code> command above, but
+with all options specified. Note that the directory passed to <code class="docutils literal"><span class="pre">--data-dir</span></code>
+must exist.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>cord interactive <span class="se">\</span>
+    --data-dir<span class="o">=</span>debug_data_dir <span class="se">\</span>
+    --initial-veg_map<span class="o">=</span>data/ripcas_inputs/vegclass_2z.asc <span class="se">\</span>
+    --vegzone-map<span class="o">=</span>data/ripcas_inputs/zonemap_2z.asc <span class="se">\</span>
+    --ripcas-required-data<span class="o">=</span>data/ripcas_inputs/ripcas-data-requirements.xlsx <span class="se">\</span>
+    --peak-flows-file<span class="o">=</span>data/peak.txt <span class="se">\</span>
+    --geometry-file<span class="o">=</span>data/dflow_inputs/DBC_geometry.xyz <span class="se">\</span>
+    --streambed-roughness<span class="o">=</span>0.04 <span class="se">\</span>
+    --streambed-slope<span class="o">=</span>0.001
+</pre></div>
+</div>
+</div>
+<div class="section" id="push-your-modelrun-data-to-hydroshare">
+<h3>Push your modelrun data to HydroShare<a class="headerlink" href="#push-your-modelrun-data-to-hydroshare" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal"><span class="pre">push_hs</span></code> command will zip related data and push three files to
+HydroShare: <code class="docutils literal"><span class="pre">input.zip</span></code>, <code class="docutils literal"><span class="pre">vegetation.zip</span></code>, and <code class="docutils literal"><span class="pre">shear.zip</span></code>. You can
+provide your credentials on the command line like so, or the command will prompt
+you for your credentials.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>cord push_hs <span class="se">\</span>
+    --modelrun-dir<span class="o">=</span>debug_data_dir <span class="se">\</span>
+    --username<span class="o">=</span>your_hs_username <span class="se">\</span>
+    --password<span class="o">=</span>your_hs_password <span class="se">\</span>
+    --resource-title<span class="o">=</span><span class="s1">&#39;this is the title that will be shown on HydroShare.org&#39;</span> <span class="se">\</span>
+    -k rivers -k other-keyword-1 -k other-keyword-2
+</pre></div>
+</div>
+<p>All these options should be self-explanatory. When submitting this to the
+HydroShare server, here is a screenshot of the resulting resource we created</p>
+<img alt="_images/push_hs_example.png" src="_images/push_hs_example.png" />
+<p>When you start
+a model run, all the input files and parameters you have specified are moved to
+a folder called <code class="docutils literal"><span class="pre">input</span></code> under the <code class="docutils literal"><span class="pre">data_dir</span></code> you specified. This is straight
+forward except for the <code class="docutils literal"><span class="pre">streambed_roughness</span></code> and <code class="docutils literal"><span class="pre">streambed_slope</span></code>: these
+are put into a file called <code class="docutils literal"><span class="pre">roughness_slope.txt</span></code>
+with two rows that would look like this for the example above</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>roughness    slope
+0.04         0.001
+</pre></div>
+</div>
+<p>Every timestep creates two directories, <code class="docutils literal"><span class="pre">dflow-{timestep}</span></code> and
+<code class="docutils literal"><span class="pre">ripcas-{timestep}</span></code>. The <code class="docutils literal"><span class="pre">dflow</span></code> directory contains everything required to
+do an individual DFLOW run, including the four boundary condition files,
+the mesh file (which has <code class="docutils literal"><span class="pre">_net</span></code> in the name), the <code class="docutils literal"><span class="pre">.pbs</span></code> file which is used
+to submit the job to the CARC scheduler, the <code class="docutils literal"><span class="pre">.mdu</span></code> and <code class="docutils literal"><span class="pre">.ext</span></code> files which
+are config files used by DFLOW, and the output, both in the original netCDF
+format in the <code class="docutils literal"><span class="pre">DFM_OUTPUT</span></code> subdirectory and the converted-to-ESRI ascii
+version, <code class="docutils literal"><span class="pre">shear_out.asc</span></code>. The <code class="docutils literal"><span class="pre">ripcas</span></code> directories contain only the output
+vegetation file, <code class="docutils literal"><span class="pre">vegetation.asc</span></code>. Before pushing the data to HydroShare,
+<code class="docutils literal"><span class="pre">push_hs</span></code> creates the three zip files, <code class="docutils literal"><span class="pre">input.zip</span></code>, <code class="docutils literal"><span class="pre">vegetation.zip</span></code>, and <code class="docutils literal"><span class="pre">shear.zip</span></code>,
+then pushes those to HydroShare. When you download those outputs from
+HydroShare and unzip the <code class="docutils literal"><span class="pre">vegetation.zip</span></code> and <code class="docutils literal"><span class="pre">shear.zip</span></code>, there will be a
+series of sequentially numbered outputs, <code class="docutils literal"><span class="pre">vegetation-0.asc</span></code>,
+<code class="docutils literal"><span class="pre">vegetation-1.asc</span></code>, ..., and <code class="docutils literal"><span class="pre">shear-0.asc</span></code>, <code class="docutils literal"><span class="pre">shear-1.asc</span></code>, and so on.</p>
+<p>So, after a modelrun has completed, you will have, with the
+<code class="docutils literal"><span class="pre">--data-dir</span></code> you specified as the base directory, the following output
+directory structure:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>data-dir/
+|
+-- inputs/
+    -- peak_flows.txt
+    -- DBC_geometry.txt
+    -- ripcas-required-data.txt
+    -- roughness_slope.txt (small TSV file with roughness &amp; slope info)
+    -- vegclass_2z.asc
+    -- zonemap_2z.asc
+|
+-- dflow-0/
+    -- shear_out.asc
+    -- (... other DFLOW files)
+|
+-- ripcas-0/
+    -- vegetation.asc
+|
+-- dflow-1
+    -- shear_out.asc
+    -- (.. other DFLOW files)
+|
+-- ripcas-1/
+   -- vegetation.asc
+
+...
+
+|
+-- dflow-{N-1}/
+-- ripcas-{N-1}/
+</pre></div>
+</div>
+<p>Where N is the number of peak flows in the <code class="docutils literal"><span class="pre">--peak-flows</span></code> file. <code class="docutils literal"><span class="pre">push_hs</span></code>
+takes this unwieldy output and puts it in something more manageable. Plus, it
+stores the model run outputs with metadata in a way that can be easily shared
+when you are ready to publish your paper that used this data.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">CoRD</a></h1>
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=VirtualWatershed&repo=CoRD&type=watch&count=true&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="20px"></iframe>
+</p>
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=VirtualWatershed&type=follow"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="20px"></iframe>
+  <!--<a href="https://github.com/VirtualWatershed/cord">CoRD on GitHub</a>-->
+</p>
+
+
+
+
+<h3>Navigation</h3>
+<div id="sidebar_toctree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install Instructions</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#quick-reference-guide">Quick Reference Guide</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+</div>
+<ul class="footer_nav">
+      <li class="prev">
+        Previous topic: <a href="install.html">Install Instructions</a>
+      </li>
+      <li class="next">
+        Next topic: <a href="api.html">API Reference</a>
+      </li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="install.html" title="previous chapter">Install Instructions</a></li>
+      <li>Next: <a href="api.html" title="next chapter">API Reference</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Matthew Turner, Sarah Miller, Angela Gregory, Mark Stone, and Dan Cadol.
+
+    
+  </body>
+</html>
