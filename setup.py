@@ -54,9 +54,7 @@ setup(
     ],
     packages=find_packages(),
     package_data={
-        'cord.data': ['*'],
-        'cord.data.dflow_inputs': ['*'],
-        'cord.data.ripcas_inputs': ['*']
+        'cord': ['data/dflow_inputs/*', 'data/ripcas_inputs/*'],
     },
     include_package_data=True,
     install_requires=requires,
