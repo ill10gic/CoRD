@@ -59,7 +59,7 @@ def from_config(ctx, config_file):
         cfg['data_dir'],
         cfg['initial_vegetation_map'],
         cfg['vegzone_map'],
-        cfg['ripcas_required_data'],
+        cfg['veg_roughness_shearres_lookup'],
         cfg['peak_flows_file'],
         cfg['geometry_file'],
         cfg['streambed_roughness'],
@@ -157,10 +157,10 @@ def load_args_from_config(config_file):
     Returns
         (dict) dictionary of kwargs ready for modelrun_series
     """
-
     cfg = ConfigParser(inline_comment_prefixes='#')
     cfg.read(config_file)
 
+    # general config options
     gen = dict(cfg['General'])
     if gen['log_f'] == u'':
         gen['log_f'] = None
@@ -168,9 +168,43 @@ def load_args_from_config(config_file):
     if gen['dflow_run_fun'] == u'':
         gen['dflow_run_fun'] = None
 
+    curdir = os.path.dirname(__file__)
+    if gen['initial_vegetation_map'] == u'':
+        gen['initial_vegetation_map'] = os.path.join(
+            curdir, '..', 'data', 'ripcas_inputs', 'vegclass_2z.asc'
+        )
+
+    if gen['vegzone_map'] == u'':
+        gen['vegzone_map'] = os.path.join(
+            curdir, '..', 'data', 'ripcas_inputs', 'zonemap_2z.asc'
+        )
+
+    if gen['veg_roughness_shearres_lookup'] == u'':
+        gen['veg_roughness_shearres_lookup'] = os.path.join(
+            curdir, '..', 'data', 'ripcas_inputs',
+            'veg_roughness_shearres.xlsx'
+        )
+
+    if gen['geometry_file'] == u'':
+        gen['geometry_file'] = os.path.join(
+            curdir, '..', 'data', 'dflow_inputs', 'DBC_geometry.xyz'
+        )
+
+    if gen['peak_flows_file'] == u'':
+        raise RuntimeError('PEAK_FLOWS_FILE must be defined in ' + config_file)
+
+    if gen['streambed_roughness'] == u'':
+        raise RuntimeError(
+            'STREAMBED_ROUGHNESS must be defined in ' + config_file
+        )
+
+    if gen['streambed_slope'] == u'':
+        raise RuntimeError('STREAMBED_SLOPE must be defined in ' + config_file)
+
     gen['streambed_roughness'] = float(gen['streambed_roughness'])
     gen['streambed_slope'] = float(gen['streambed_slope'])
 
+    # hydroshare config options
     hs = dict(cfg['HydroShare'])
     if hs['sync_hydroshare'] == u'False':
         hs['sync_hydroshare'] = False

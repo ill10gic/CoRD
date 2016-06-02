@@ -64,3 +64,4 @@ venv
 *~$*
 *debug*
 docs/_build
+*default.conf

@@ -6,11 +6,11 @@
 [General]
 
 DATA_DIR = debug_data_dir  # must create the directory before running 
-INITIAL_VEGETATION_MAP = data/ripcas_inputs/vegclass_2z.asc 
-VEGZONE_MAP = data/ripcas_inputs/zonemap_2z.asc
-RIPCAS_REQUIRED_DATA = data/ripcas_inputs/ripcas-data-requirements.xlsx 
-PEAK_FLOWS_FILE = data/peak.txt 
-GEOMETRY_FILE = data/dflow_inputs/DBC_geometry.xyz
+INITIAL_VEGETATION_MAP = 
+VEGZONE_MAP = 
+VEG_ROUGHNESS_SHEARRES_LOOKUP = 
+PEAK_FLOWS_FILE = peak.txt 
+GEOMETRY_FILE = 
 STREAMBED_ROUGHNESS = 0.04
 STREAMBED_SLOPE = 0.001
 #
@@ -19,3 +19,9 @@ STREAMBED_SLOPE = 0.001
 DFLOW_RUN_FUN =   
 # will default to the data_dir with dashes replacing slashes if blank
 LOG_F =   
+
+[HydroShare]
+SYNC_HYDROSHARE = False
+# go to hydroshare.org and sign up to get your username and password
+USERNAME =  
+PASSWORD = 

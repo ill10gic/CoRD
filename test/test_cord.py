@@ -146,7 +146,8 @@ class TestModelRun(unittest.TestCase):
         """
         self.mr.bc_converged = True
         d = os.path.join(self.tmpdir, 'dflow-test')
-        self.mr.run_dflow(d, 'test/data/vegcode.asc')
+        self.mr.run_dflow(d, 'test/data/vegcode.asc',
+                          'test/data/resist_manning_lookup.xlsx')
 
         assert os.path.exists(d)
         # there are six required files that should have been copied to the
@@ -179,7 +180,7 @@ class TestModelRun(unittest.TestCase):
         self.mr.dflow_has_run = True
         self.mr.vegetation_ascii = ESRIAsc('test/data/vegcode.asc')
 
-        self.mr.dflow_directory = 'test/data'
+        self.mr.dflow_run_directory = 'test/data'
         out = self.mr.run_ripcas(
             'test/data/zonemap.asc', 'test/data/resist_manning_lookup.xlsx',
             os.path.join(self.tmpdir, 'ripcas-test'),

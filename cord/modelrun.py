@@ -42,7 +42,7 @@ class ModelRun(object):
         self.ripcas_directory = None
 
         self.dflow_has_run = False
-        self.dflow_directory = None
+        self.dflow_run_directory = None
         self.dflow_shear_output = None
 
         self.upstream_bc = BoundaryCondition()
@@ -85,20 +85,21 @@ class ModelRun(object):
 
         return (self.upstream_bc, self.downstream_bc)
 
-    def run_dflow(self, dflow_directory, vegetation_map, clobber=True,
+    def run_dflow(self, dflow_run_directory, vegetation_map,
+                  veg_roughness_shearres_lookup, clobber=True,
                   pbs_script_name='dflow_mpi.pbs', dflow_run_fun=None):
         """
-        Both input and output dflow files will go into the dflow_directory,
+        Both input and output dflow files will go into the dflow_run_directory,
         but in input/ and output/ subdirectories.
 
         Arguments:
-            dflow_directory (str): directory where DFLOW files should be
+            dflow_run_directory (str): directory where DFLOW files should be
                 put and where the dflow_run_fun will be run from
             vegetation_map (str): path to the input vegetation.pol file. This
                 function assumes this has already been generated in the proper
                 format b/c this seems like the best separation of
                 responsibilities.
-            clobber (bool): whether or not to overwrite dflow_directory if
+            clobber (bool): whether or not to overwrite dflow_run_directory if
                 it exists
             pbs_script_name (str): name of .pbs script w/o directory
             dflow_run_fun (function): argument-free function to run DFLOW.
@@ -119,56 +120,48 @@ class ModelRun(object):
                 'DFLOW has already been run for this CoupledRun'
             )
 
-        if os.path.exists(dflow_directory):
+        if os.path.exists(dflow_run_directory):
 
             if not clobber:
                 raise RuntimeError(
                     'DFLOW has already been run for this CoupledRun'
                 )
 
-            shutil.rmtree(dflow_directory)
+            shutil.rmtree(dflow_run_directory)
 
-        self.dflow_directory = dflow_directory
+        self.dflow_run_directory = dflow_run_directory
 
-        os.mkdir(dflow_directory)
-
-        # inputs_path = os.path.join(dflow_directory, 'inputs')
-        # outputs_path = os.path.join(dflow_directory, 'outputs')
-
-        # os.mkdir(inputs_path)
-        # os.mkdir(outputs_path)
+        os.mkdir(dflow_run_directory)
 
         # write boundary conditions to file
-        bc_up_path = os.path.join(dflow_directory, 'boundriver_up_0001.cmp')
-        bc_down_path = os.path.join(dflow_directory, 'boundriverdown_0001.cmp')
+        bc_up_path = os.path.join(dflow_run_directory,
+                                  'boundriver_up_0001.cmp')
+
+        bc_down_path = os.path.join(dflow_run_directory,
+                                    'boundriverdown_0001.cmp')
 
         self.upstream_bc.write(bc_up_path)
         self.downstream_bc.write(bc_down_path)
 
         self.vegetation_ascii = ESRIAsc(vegetation_map)
 
-        veg_path = os.path.join(dflow_directory, 'n.pol')
+        veg_path = os.path.join(dflow_run_directory, 'n.pol')
 
         Pol.from_ascii(
-            veg2n(self.vegetation_ascii,
-                  _join_data_dir(
-                    os.path.join('ripcas_inputs',
-                                 'ripcas-data-requirements.xlsx')
-                    )
-                  )
+            veg2n(self.vegetation_ascii, veg_roughness_shearres_lookup)
         ).write(veg_path)
 
         oj = os.path.join
 
-        pbs_path = oj(dflow_directory, pbs_script_name)
-        mdu_path = oj(dflow_directory, 'base.mdu')
-        net_path = oj(dflow_directory, 'base_net.nc')
-        ext_path = oj(dflow_directory, 'base.ext')
-        brd_path = oj(dflow_directory, 'boundriverdown.pli')
-        bru_path = oj(dflow_directory, 'boundriver_up.pli')
+        pbs_path = oj(dflow_run_directory, pbs_script_name)
+        mdu_path = oj(dflow_run_directory, 'base.mdu')
+        net_path = oj(dflow_run_directory, 'base_net.nc')
+        ext_path = oj(dflow_run_directory, 'base.ext')
+        brd_path = oj(dflow_run_directory, 'boundriverdown.pli')
+        bru_path = oj(dflow_run_directory, 'boundriver_up.pli')
 
         self.dflow_shear_output =\
-            os.path.join(dflow_directory,
+            os.path.join(dflow_run_directory,
                          'DFM_OUTPUT_base',
                          'base_map.nc')
 
@@ -193,19 +186,17 @@ class ModelRun(object):
             f.write(s)
 
         with open(brd_path, 'w') as f:
-            # s = open('cord/data/dflow_inputs/boundriverdown.pli', 'r').read()
             p = _join_data_dir(oj('dflow_inputs', 'boundriverdown.pli'))
             s = open(p, 'r').read()
             f.write(s)
 
         with open(bru_path, 'w') as f:
-            # s = open('cord/data/dflow_inputs/boundriver_up.pli', 'r').read()
             p = _join_data_dir(oj('dflow_inputs', 'boundriver_up.pli'))
             s = open(p, 'r').read()
             f.write(s)
 
         bkdir = os.getcwd()
-        os.chdir(dflow_directory)
+        os.chdir(dflow_run_directory)
 
         if dflow_run_fun is None:
 
@@ -265,7 +256,9 @@ class ModelRun(object):
             assert isinstance(shear_asc, ESRIAsc),\
                 'shear_asc must be of type ESRIAsc if provided'
 
-        shear_asc.write(os.path.join(self.dflow_directory, 'shear_out.asc'))
+        shear_asc.write(
+            os.path.join(self.dflow_run_directory, 'shear_out.asc')
+        )
 
         output_veg_ascii = ripcas(
             self.vegetation_ascii, zone_map_path,
@@ -459,7 +452,7 @@ def mr_log(log_f, msg):
 
 
 def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
-                    ripcas_required_data, peak_flows_file, geometry_file,
+                    veg_roughness_shearres_lookup, peak_flows_file, geometry_file,
                     streambed_roughness, streambed_slope, dflow_run_fun=None,
                     log_f=None, debug=False):
 
@@ -492,7 +485,7 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
     shutil.copy(initial_vegetation_map, inputs_dir)
     shutil.copy(vegzone_map, inputs_dir)
-    shutil.copy(ripcas_required_data, inputs_dir)
+    shutil.copy(veg_roughness_shearres_lookup, inputs_dir)
     shutil.copy(peak_flows_file, inputs_dir)
     shutil.copy(geometry_file, inputs_dir)
 
@@ -526,11 +519,14 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
             )
 
         if debug:
-            mr.run_dflow(dflow_dir, veg_file)
+            mr.run_dflow(dflow_dir, veg_file, veg_roughness_shearres_lookup)
             job_id = 'debug'
 
         else:
-            p_ref = mr.run_dflow(dflow_dir, veg_file, dflow_run_fun=dflow_fun)
+            p_ref = mr.run_dflow(dflow_dir, veg_file,
+                                 veg_roughness_shearres_lookup,
+                                 dflow_run_fun=dflow_fun)
+
             job_id = p_ref.communicate()[0].split('.')[0]
 
         mr_log(log_f, 'Job ID {0} submitted for DFLOW run {1}\n'.format(
@@ -575,8 +571,8 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
         if debug:
             p = _join_data_dir('shear_out.asc')
-            mr.run_ripcas(vegzone_map, ripcas_required_data, ripcas_dir,
-                          shear_asc=ESRIAsc(p))
+            mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
+                          ripcas_dir, shear_asc=ESRIAsc(p))
 
         mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
 
@@ -593,13 +589,13 @@ modelrun.py
 Author: Matthew Turner
 
 Usage:
-    python ripcas_dflow/modelrun.py data_dir initial_vegetation vegzone_map ripcas_required_data\
+    python ripcas_dflow/modelrun.py data_dir initial_vegetation vegzone_map veg_roughness_shearres_lookup\
             peak_flows_file geometry_file streambed_roughness streambed_slope
 
     data_dir: directory to hold each time step of the model run
     initial_vegetation: .asc file with initial vegetation map
     vegzone_map: .asc file with vegetation zone information
-    ripcas_required_data: .xlsx file with veg type-to-n and shear resistance-per-veg type information
+    veg_roughness_shearres_lookup: .xlsx file with veg type-to-n and shear resistance-per-veg type information
     peak_flows_file: file with a column of peak flood flow in cubic meters per second
     geometry_file: xyz file representing geometry of downstream cross section for boundary conditions calculation
     streambed_roughness: floating point number for the roughness value of the streambed
@@ -616,20 +612,22 @@ Usage:
     data_dir = sys.argv[1]
     initial_vegetation_map = sys.argv[2]
     vegzone_map = sys.argv[3]
-    ripcas_required_data = sys.argv[4]
+    veg_roughness_shearres_lookup = sys.argv[4]
     peak_flows_file = sys.argv[5]
     geometry_file = sys.argv[6]
     streambed_roughness = float(sys.argv[7])
     streambed_slope = float(sys.argv[8])
 
     modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
-                     ripcas_required_data, peak_flows_file, geometry_file,
+                     veg_roughness_shearres_lookup, peak_flows_file, geometry_file,
                      streambed_roughness, streambed_slope, dflow_run_fun=None,
                      log_f=None)
 
 
 def _join_data_dir(f):
-
+    '''
+    Join the filename, f, to the default data directory
+    '''
     data_dir = os.path.join(os.path.dirname(__file__), 'data')
 
     return os.path.join(data_dir, f)

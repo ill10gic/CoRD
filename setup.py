@@ -40,7 +40,7 @@ tests_require = [
 setup(
     name='cord',
     description='Coupled RipCAS-DFLOW for Vegetation and Hydrology of Streams',
-    version='0.1.1',
+    version='0.1.2',
     author_email='maturner01@gmail.com',
     author='Matthew Turner',
     license='BSD3',
@@ -53,6 +53,11 @@ setup(
         'Intended Audience :: Science/Research'
     ],
     packages=find_packages(),
+    package_data={
+        'cord.data': ['*'],
+        'cord.data.dflow_inputs': ['*'],
+        'cord.data.ripcas_inputs': ['*']
+    },
     include_package_data=True,
     install_requires=requires,
     tests_require=tests_require,
