@@ -48,6 +48,21 @@ def interactive(ctx, data_dir, initial_veg_map, vegzone_map,
 
 
 @cli.command()
+@click.option('--config-filename', '-n', default='default.conf')
+@click.pass_context
+def generate_config(ctx, config_filename):
+    "Generate a configuration file"
+    conf_template = open(
+        os.path.join(os.path.dirname(__file__), '..', 'default.conf.template')
+    ).read()
+
+    with open(config_filename, 'w') as f:
+        f.write(conf_template)
+
+    return None
+
+
+@cli.command()
 @click.argument('config_file', type=CPE())
 @click.pass_context
 def from_config(ctx, config_file):
