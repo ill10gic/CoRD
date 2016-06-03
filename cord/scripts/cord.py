@@ -30,18 +30,21 @@ def CPE():
 @click.option('--peak-flows-file', prompt=True, type=CPE())
 @click.option('--geometry-file', prompt=True, type=CPE())
 @click.option('--streambed-roughness', prompt=True, type=click.FLOAT)
+@click.option('--streambed-floodplain-roughness', prompt=True, type=click.FLOAT)
 @click.option('--streambed-slope', prompt=True, type=click.FLOAT)
 @click.option('--dflow-run-fun', default=None)
 @click.pass_context
 def interactive(ctx, data_dir, initial_veg_map, vegzone_map,
                 ripcas_required_data, peak_flows_file, geometry_file,
-                streambed_roughness, streambed_slope, dflow_run_fun):
+                streambed_roughness, streambed_floodplain_roughness,
+                streambed_slope, dflow_run_fun):
     """Run CoRD interactively or with options"""
 
     modelrun_series(data_dir, initial_veg_map, vegzone_map,
                     ripcas_required_data, peak_flows_file, geometry_file,
-                    streambed_roughness, streambed_slope, dflow_run_fun,
-                    ctx.obj['LOGFILE'], ctx.obj['DEBUG'])
+                    streambed_roughness, streambed_floodplain_roughness,
+                    streambed_slope, dflow_run_fun, ctx.obj['LOGFILE'],
+                    ctx.obj['DEBUG'])
 
 
 @cli.command()
@@ -63,6 +66,7 @@ def from_config(ctx, config_file):
         cfg['peak_flows_file'],
         cfg['geometry_file'],
         cfg['streambed_roughness'],
+        cfg['streambed_floodplain_roughness'],
         cfg['streambed_slope'],
         cfg['dflow_run_fun'],
         logfile,
@@ -198,10 +202,17 @@ def load_args_from_config(config_file):
             'STREAMBED_ROUGHNESS must be defined in ' + config_file
         )
 
+    if gen['streambed_floodplain_roughness'] == u'':
+        raise RuntimeError(
+            'STREAMBED_FLOODPLAIN_ROUGHNESS must be defined in ' + config_file
+        )
+
     if gen['streambed_slope'] == u'':
         raise RuntimeError('STREAMBED_SLOPE must be defined in ' + config_file)
 
     gen['streambed_roughness'] = float(gen['streambed_roughness'])
+    gen['streambed_floodplain_roughness'] = \
+        float(gen['streambed_floodplain_roughness'])
     gen['streambed_slope'] = float(gen['streambed_slope'])
 
     # hydroshare config options

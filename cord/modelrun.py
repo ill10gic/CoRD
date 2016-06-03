@@ -86,8 +86,9 @@ class ModelRun(object):
         return (self.upstream_bc, self.downstream_bc)
 
     def run_dflow(self, dflow_run_directory, vegetation_map,
-                  veg_roughness_shearres_lookup, clobber=True,
-                  pbs_script_name='dflow_mpi.pbs', dflow_run_fun=None):
+                  veg_roughness_shearres_lookup, streambed_roughness,
+                  clobber=True, pbs_script_name='dflow_mpi.pbs',
+                  dflow_run_fun=None):
         """
         Both input and output dflow files will go into the dflow_run_directory,
         but in input/ and output/ subdirectories.
@@ -148,7 +149,9 @@ class ModelRun(object):
         veg_path = os.path.join(dflow_run_directory, 'n.pol')
 
         Pol.from_ascii(
-            veg2n(self.vegetation_ascii, veg_roughness_shearres_lookup)
+            veg2n(self.vegetation_ascii,
+                  veg_roughness_shearres_lookup,
+                  streambed_roughness)
         ).write(veg_path)
 
         oj = os.path.join
@@ -452,9 +455,44 @@ def mr_log(log_f, msg):
 
 
 def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
-                    veg_roughness_shearres_lookup, peak_flows_file, geometry_file,
-                    streambed_roughness, streambed_slope, dflow_run_fun=None,
-                    log_f=None, debug=False):
+                    veg_roughness_shearres_lookup, peak_flows_file,
+                    geometry_file, streambed_roughness,
+                    streambed_floodplain_roughness, streambed_slope,
+                    dflow_run_fun=None, log_f=None, debug=False):
+    '''
+    Run a series of flow and succession models with peak flows given in
+    peak_flows_file.
+
+    Arguments:
+        data_dir (str): write directory for modelrun series. Must exist
+        initial_vegetation_map (str): location of year zero veg map
+        vegzone_map (str): vegetation zone map location
+        veg_roughness_shearres_lookup (str): Excel spreadsheet containing
+            conversion from vegetation code to roughness value and vegetation
+            code to shear stress resistance
+        peak_flow_file (str): location of text file record of peak flows in
+            cubic meters per second
+        geometry_file (str): location of channel geometry at the downstream
+            location for calculating streamflow
+        streambed_roughness (float): streambed roughness in channel only; used
+            when converting vegetation map to roughness map
+        streambed_floodplain_roughness (float): an average roughness of
+            stream channel and floodplain used in calculation of downstream
+            boundary condition for DFLOW
+        streambed_slope (float): rise over run of the channel used in
+            calculation of downstream boundary condition for DFLOW
+        dflow_run_fun (function): function delegate for the user to provide a
+            custom way to run DFLOW. If none is given, defaults to
+            submitting a PBS job as is done on CARC systems
+        log_f (str): log file. if none is given, defaults to `data_dir`.log
+            with dashes replacing slashes
+        debug (bool): whether or not to run in debug mode. If running in debug
+            mode, each DFLOW run returns fake data and
+            each RipCAS run takes cord/data/shear_out.asc as input
+
+        returns:
+            None
+    '''
 
     if dflow_run_fun is None:
 
@@ -468,7 +506,12 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
             )
 
     if log_f is None:
-        log_f = open(data_dir.replace('/', '-')[1:] + '.log', 'w')
+
+        first_char = data_dir[0]
+        root_log_f = first_char if first_char != '/' else ''
+        root_log_f += data_dir[1:].replace('/', '-')
+
+        log_f = open(root_log_f + '.log', 'w')
 
     else:
         log_f = open(log_f, 'w')
@@ -493,14 +536,15 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
     with open(roughness_slope_path, 'w') as f:
         f.write('roughness\tslope\n')
-        f.write('%s\t%s' % (streambed_roughness, streambed_slope))
+        f.write('%s\t%s\n' % (streambed_roughness, streambed_slope))
 
     for flow_idx, flow in enumerate(peak_flows):
 
         mr = ModelRun()
 
         mr.calculate_bc(
-            flow, geometry_file, streambed_roughness, streambed_slope
+            flow, geometry_file,
+            streambed_floodplain_roughness, streambed_slope
         )
 
         mr_log(
@@ -519,12 +563,14 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
             )
 
         if debug:
-            mr.run_dflow(dflow_dir, veg_file, veg_roughness_shearres_lookup)
+            mr.run_dflow(dflow_dir, veg_file,
+                         veg_roughness_shearres_lookup, streambed_roughness)
             job_id = 'debug'
 
         else:
             p_ref = mr.run_dflow(dflow_dir, veg_file,
                                  veg_roughness_shearres_lookup,
+                                 streambed_roughness,
                                  dflow_run_fun=dflow_fun)
 
             job_id = p_ref.communicate()[0].split('.')[0]

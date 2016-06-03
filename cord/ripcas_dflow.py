@@ -17,7 +17,7 @@ from scipy.interpolate import griddata
 from pandas import read_table, read_excel, Series
 
 
-def ripcas_with_dflow_io(vegetation_map, zone_map,
+def ripcas_with_dflow_io(vegetation_map, zone_map, streambed_roughness,
                          shear_nc_path, ripcas_required_data):
     """
     Wrapper for using DFLOW input/output with ripcas. Note instead of
@@ -52,7 +52,7 @@ def ripcas_with_dflow_io(vegetation_map, zone_map,
         veg2n(
             ripcas(
                 vegetation_map, zone_map, shear_map, ripcas_required_data
-            ), ripcas_required_data
+            ), ripcas_required_data, streambed_roughness
         )
     )
 
@@ -121,7 +121,8 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
 
             is_not_nodata = (
                 shear_map.data[idx] != shear_map.NODATA_value and
-                vegetation_map.data[idx] != vegetation_map.NODATA_value
+                vegetation_map.data[idx] != vegetation_map.NODATA_value and
+                vegetation_map.data[idx] > 0
             )
 
             veg_needs_reset = (
@@ -135,7 +136,6 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
 
             # whether or not the vegetation was destroyed, age by one
             if is_not_nodata:
-
                 ret_veg_map.data[idx] += 1
 
     return ret_veg_map
@@ -186,7 +186,7 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     return ESRIAsc(data=Series(data), **header_dict)
 
 
-def veg2n(veg_map, ripcas_required_data):
+def veg2n(veg_map, ripcas_required_data, streambed_roughness):
     """
     Creat an ESRIAsc representation of an ESRI .asc file that contains roughness
     values substituted for vegetation codes. The translation is found in the
@@ -194,11 +194,16 @@ def veg2n(veg_map, ripcas_required_data):
 
     Arguments:
         veg_map (ESRIAsc): path to ESRI .asc file with vegetation codes
-        ripcas_required_data (str): path to Excel file with vegetation codes mapped
-            to Manning's roughness n-values. The Excel file must have four
-            columns with headers
+        ripcas_required_data (str): path to Excel file with vegetation
+            codes mapped to Manning's roughness n-values. The Excel file must
+            have four columns with headers
+
                 Code	shear_resis	Code	n_val
+
             on the first sheet.
+
+        streambed_roughness (float): Manning's roughness value for the
+            streambed itself, which is represented with zeros in the veg map
 
     Raises:
         (ValueError) if there is a vegetation code in the .asc that is not
@@ -214,9 +219,10 @@ def veg2n(veg_map, ripcas_required_data):
     veg2n_dict = dict(
         zip(cas_df['Code.1'], cas_df['n_val'])
     )
+    # add streambed_roughness replacement value
+    veg2n_dict.update({0: streambed_roughness})
 
     ret = copy.deepcopy(veg_map)
-
     ret.data = veg_map.data.replace(veg2n_dict)
 
     return ret

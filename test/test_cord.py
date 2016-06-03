@@ -34,7 +34,7 @@ class TestRipCASAndHelpers(unittest.TestCase):
         vegmap_mat = ESRIAsc(self.ascii_veg).as_matrix()
 
         vmat_unique = numpy.unique(vegmap_mat)
-        vmat_expected = numpy.array([-9999, 100, 101, 102, 106, 210, 215],
+        vmat_expected = numpy.array([-9999, 0, 100, 101, 102, 106, 210, 215],
                                     dtype='f8')
 
         assert (vmat_unique == vmat_expected).all()
@@ -84,7 +84,7 @@ class TestRipCASAndHelpers(unittest.TestCase):
             'test/data/vegcode.asc'
         )
 
-        nmap = veg2n(veg_map, self.ripcas_required_data)
+        nmap = veg2n(veg_map, self.ripcas_required_data, 0.035)
 
         assert nmap == expected_nmap, \
             "nmap: {}\nexpected_nmap: {}".format(nmap.data, expected_nmap.data)
@@ -147,7 +147,8 @@ class TestModelRun(unittest.TestCase):
         self.mr.bc_converged = True
         d = os.path.join(self.tmpdir, 'dflow-test')
         self.mr.run_dflow(d, 'test/data/vegcode.asc',
-                          'test/data/resist_manning_lookup.xlsx')
+                          'test/data/resist_manning_lookup.xlsx',
+                          0.35)
 
         assert os.path.exists(d)
         # there are six required files that should have been copied to the
@@ -291,6 +292,7 @@ class TestCLI(unittest.TestCase):
                   '--peak-flows-file', 'test/data/floods.txt',
                   '--geometry-file', 'cord/data/dflow_inputs/DBC_geometry.xyz',
                   '--streambed-roughness', '0.04',
+                  '--streambed-floodplain-roughness', '0.035',
                   '--streambed-slope', '0.001']
         )
 
@@ -386,4 +388,4 @@ def _test_modelrun_success(modelrun_dir):
         assert os.path.exists(opj(inputs_dir, i))
 
     with open(opj(inputs_dir, 'roughness_slope.txt'), 'r') as f:
-        assert f.read() == 'roughness\tslope\n0.04\t0.001'
+        assert f.read() == 'roughness\tslope\n0.04\t0.001\n'

@@ -65,3 +65,4 @@ venv
 *debug*
 docs/_build
 *default.conf
+not_actually_output.nc

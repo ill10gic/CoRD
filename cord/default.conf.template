@@ -11,8 +11,11 @@ VEGZONE_MAP =
 VEG_ROUGHNESS_SHEARRES_LOOKUP = 
 PEAK_FLOWS_FILE = peak.txt 
 GEOMETRY_FILE = 
-STREAMBED_ROUGHNESS = 0.04
-STREAMBED_SLOPE = 0.001
+
+STREAMBED_ROUGHNESS = 0.035  # in-channel only
+STREAMBED_FLOODPLAIN_ROUGHNESS = 0.04  # including out-of-channel for BC calculation
+STREAMBED_SLOPE = 0.001  # also used in BC calculation
+
 #
 # python import style, e.g. my_dflow_module.my_dflow_fun 
 # defaults to a function that calls qsub dflow_mpi.pbs
@@ -20,7 +23,9 @@ DFLOW_RUN_FUN =
 # will default to the data_dir with dashes replacing slashes if blank
 LOG_F =   
 
+
 [HydroShare]
+
 SYNC_HYDROSHARE = False
 # go to hydroshare.org and sign up to get your username and password
 USERNAME =  
