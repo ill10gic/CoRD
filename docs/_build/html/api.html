@@ -120,19 +120,19 @@ slope (float): slope taken for the reach</p>
 
 <dl class="method">
 <dt id="cord.modelrun.ModelRun.run_dflow">
-<code class="descname">run_dflow</code><span class="sig-paren">(</span><em>dflow_directory</em>, <em>vegetation_map</em>, <em>clobber=True</em>, <em>pbs_script_name='dflow_mpi.pbs'</em>, <em>dflow_run_fun=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/modelrun.html#ModelRun.run_dflow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.modelrun.ModelRun.run_dflow" title="Permalink to this definition">¶</a></dt>
-<dd><p>Both input and output dflow files will go into the dflow_directory,
+<code class="descname">run_dflow</code><span class="sig-paren">(</span><em>dflow_run_directory</em>, <em>vegetation_map</em>, <em>veg_roughness_shearres_lookup</em>, <em>streambed_roughness</em>, <em>clobber=True</em>, <em>pbs_script_name='dflow_mpi.pbs'</em>, <em>dflow_run_fun=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/modelrun.html#ModelRun.run_dflow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.modelrun.ModelRun.run_dflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Both input and output dflow files will go into the dflow_run_directory,
 but in input/ and output/ subdirectories.</p>
 <dl class="docutils">
 <dt>Arguments:</dt>
 <dd><dl class="first docutils">
-<dt>dflow_directory (str): directory where DFLOW files should be</dt>
+<dt>dflow_run_directory (str): directory where DFLOW files should be</dt>
 <dd>put and where the dflow_run_fun will be run from</dd>
 <dt>vegetation_map (str): path to the input vegetation.pol file. This</dt>
 <dd>function assumes this has already been generated in the proper
 format b/c this seems like the best separation of
 responsibilities.</dd>
-<dt>clobber (bool): whether or not to overwrite dflow_directory if</dt>
+<dt>clobber (bool): whether or not to overwrite dflow_run_directory if</dt>
 <dd>it exists</dd>
 </dl>
 <p>pbs_script_name (str): name of .pbs script w/o directory
@@ -163,6 +163,47 @@ dflow_run_fun (function): argument-free function to run DFLOW.</p>
 <dd><p>Alias for field number 0</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="cord.modelrun.modelrun_series">
+<code class="descclassname">cord.modelrun.</code><code class="descname">modelrun_series</code><span class="sig-paren">(</span><em>data_dir</em>, <em>initial_vegetation_map</em>, <em>vegzone_map</em>, <em>veg_roughness_shearres_lookup</em>, <em>peak_flows_file</em>, <em>geometry_file</em>, <em>streambed_roughness</em>, <em>streambed_floodplain_roughness</em>, <em>streambed_slope</em>, <em>dflow_run_fun=None</em>, <em>log_f=None</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/modelrun.html#modelrun_series"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.modelrun.modelrun_series" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run a series of flow and succession models with peak flows given in
+peak_flows_file.</p>
+<dl class="docutils">
+<dt>Arguments:</dt>
+<dd><p class="first">data_dir (str): write directory for modelrun series. Must exist
+initial_vegetation_map (str): location of year zero veg map
+vegzone_map (str): vegetation zone map location
+veg_roughness_shearres_lookup (str): Excel spreadsheet containing</p>
+<blockquote>
+<div>conversion from vegetation code to roughness value and vegetation
+code to shear stress resistance</div></blockquote>
+<dl class="last docutils">
+<dt>peak_flow_file (str): location of text file record of peak flows in</dt>
+<dd>cubic meters per second</dd>
+<dt>geometry_file (str): location of channel geometry at the downstream</dt>
+<dd>location for calculating streamflow</dd>
+<dt>streambed_roughness (float): streambed roughness in channel only; used</dt>
+<dd>when converting vegetation map to roughness map</dd>
+<dt>streambed_floodplain_roughness (float): an average roughness of</dt>
+<dd>stream channel and floodplain used in calculation of downstream
+boundary condition for DFLOW</dd>
+<dt>streambed_slope (float): rise over run of the channel used in</dt>
+<dd>calculation of downstream boundary condition for DFLOW</dd>
+<dt>dflow_run_fun (function): function delegate for the user to provide a</dt>
+<dd>custom way to run DFLOW. If none is given, defaults to
+submitting a PBS job as is done on CARC systems</dd>
+<dt>log_f (str): log file. if none is given, defaults to <cite>data_dir</cite>.log</dt>
+<dd>with dashes replacing slashes</dd>
+<dt>debug (bool): whether or not to run in debug mode. If running in debug</dt>
+<dd>mode, each DFLOW run returns fake data and
+each RipCAS run takes cord/data/shear_out.asc as input</dd>
+<dt>returns:</dt>
+<dd>None</dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
@@ -228,7 +269,7 @@ Can have one or two &#8216;Code&#8217; columns and must have exactly one
 
 <dl class="function">
 <dt id="cord.ripcas_dflow.ripcas_with_dflow_io">
-<code class="descclassname">cord.ripcas_dflow.</code><code class="descname">ripcas_with_dflow_io</code><span class="sig-paren">(</span><em>vegetation_map</em>, <em>zone_map</em>, <em>shear_nc_path</em>, <em>ripcas_required_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/ripcas_dflow.html#ripcas_with_dflow_io"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.ripcas_dflow.ripcas_with_dflow_io" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">cord.ripcas_dflow.</code><code class="descname">ripcas_with_dflow_io</code><span class="sig-paren">(</span><em>vegetation_map</em>, <em>zone_map</em>, <em>streambed_roughness</em>, <em>shear_nc_path</em>, <em>ripcas_required_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/ripcas_dflow.html#ripcas_with_dflow_io"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.ripcas_dflow.ripcas_with_dflow_io" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrapper for using DFLOW input/output with ripcas. Note instead of
 shear_map we have shear_nc_path. Use shear_mesh_to_asc to convert the
 shear_mesh that comes from D-FLOW to a shear_map for input to ripcas.
@@ -280,21 +321,25 @@ header_dict (dict): dictionary with six fields as required to build</p>
 
 <dl class="function">
 <dt id="cord.ripcas_dflow.veg2n">
-<code class="descclassname">cord.ripcas_dflow.</code><code class="descname">veg2n</code><span class="sig-paren">(</span><em>veg_map</em>, <em>ripcas_required_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/ripcas_dflow.html#veg2n"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.ripcas_dflow.veg2n" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">cord.ripcas_dflow.</code><code class="descname">veg2n</code><span class="sig-paren">(</span><em>veg_map</em>, <em>ripcas_required_data</em>, <em>streambed_roughness</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cord/ripcas_dflow.html#veg2n"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cord.ripcas_dflow.veg2n" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creat an ESRIAsc representation of an ESRI .asc file that contains roughness
 values substituted for vegetation codes. The translation is found in the
 Excel file found at lookup_path.</p>
 <dl class="docutils">
 <dt>Arguments:</dt>
 <dd><p class="first">veg_map (ESRIAsc): path to ESRI .asc file with vegetation codes
-ripcas_required_data (str): path to Excel file with vegetation codes mapped</p>
-<blockquote class="last">
-<div><p>to Manning&#8217;s roughness n-values. The Excel file must have four
-columns with headers</p>
+ripcas_required_data (str): path to Excel file with vegetation</p>
+<blockquote>
+<div><p>codes mapped to Manning&#8217;s roughness n-values. The Excel file must
+have four columns with headers</p>
 <blockquote>
 <div>Code    shear_resis     Code    n_val</div></blockquote>
 <p>on the first sheet.</p>
 </div></blockquote>
+<dl class="last docutils">
+<dt>streambed_roughness (float): Manning&#8217;s roughness value for the</dt>
+<dd>streambed itself, which is represented with zeros in the veg map</dd>
+</dl>
 </dd>
 <dt>Raises:</dt>
 <dd><dl class="first last docutils">
