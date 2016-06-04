@@ -85,7 +85,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ripcas_directory</span> <span class="o">=</span> <span class="bp">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">dflow_has_run</span> <span class="o">=</span> <span class="bp">False</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dflow_directory</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dflow_run_directory</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dflow_shear_output</span> <span class="o">=</span> <span class="bp">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">upstream_bc</span> <span class="o">=</span> <span class="n">BoundaryCondition</span><span class="p">()</span>
@@ -128,20 +128,22 @@
 
         <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">upstream_bc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">downstream_bc</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="ModelRun.run_dflow"><a class="viewcode-back" href="../../api.html#cord.modelrun.ModelRun.run_dflow">[docs]</a>    <span class="k">def</span> <span class="nf">run_dflow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dflow_directory</span><span class="p">,</span> <span class="n">vegetation_map</span><span class="p">,</span> <span class="n">clobber</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-                  <span class="n">pbs_script_name</span><span class="o">=</span><span class="s1">&#39;dflow_mpi.pbs&#39;</span><span class="p">,</span> <span class="n">dflow_run_fun</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="ModelRun.run_dflow"><a class="viewcode-back" href="../../api.html#cord.modelrun.ModelRun.run_dflow">[docs]</a>    <span class="k">def</span> <span class="nf">run_dflow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dflow_run_directory</span><span class="p">,</span> <span class="n">vegetation_map</span><span class="p">,</span>
+                  <span class="n">veg_roughness_shearres_lookup</span><span class="p">,</span> <span class="n">streambed_roughness</span><span class="p">,</span>
+                  <span class="n">clobber</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">pbs_script_name</span><span class="o">=</span><span class="s1">&#39;dflow_mpi.pbs&#39;</span><span class="p">,</span>
+                  <span class="n">dflow_run_fun</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Both input and output dflow files will go into the dflow_directory,</span>
+<span class="sd">        Both input and output dflow files will go into the dflow_run_directory,</span>
 <span class="sd">        but in input/ and output/ subdirectories.</span>
 
 <span class="sd">        Arguments:</span>
-<span class="sd">            dflow_directory (str): directory where DFLOW files should be</span>
+<span class="sd">            dflow_run_directory (str): directory where DFLOW files should be</span>
 <span class="sd">                put and where the dflow_run_fun will be run from</span>
 <span class="sd">            vegetation_map (str): path to the input vegetation.pol file. This</span>
 <span class="sd">                function assumes this has already been generated in the proper</span>
 <span class="sd">                format b/c this seems like the best separation of</span>
 <span class="sd">                responsibilities.</span>
-<span class="sd">            clobber (bool): whether or not to overwrite dflow_directory if</span>
+<span class="sd">            clobber (bool): whether or not to overwrite dflow_run_directory if</span>
 <span class="sd">                it exists</span>
 <span class="sd">            pbs_script_name (str): name of .pbs script w/o directory</span>
 <span class="sd">            dflow_run_fun (function): argument-free function to run DFLOW.</span>
@@ -162,56 +164,50 @@
                 <span class="s1">&#39;DFLOW has already been run for this CoupledRun&#39;</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">):</span>
 
             <span class="k">if</span> <span class="ow">not</span> <span class="n">clobber</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
                     <span class="s1">&#39;DFLOW has already been run for this CoupledRun&#39;</span>
                 <span class="p">)</span>
 
-            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">)</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">dflow_directory</span> <span class="o">=</span> <span class="n">dflow_directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dflow_run_directory</span> <span class="o">=</span> <span class="n">dflow_run_directory</span>
 
-        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">)</span>
-
-        <span class="c1"># inputs_path = os.path.join(dflow_directory, &#39;inputs&#39;)</span>
-        <span class="c1"># outputs_path = os.path.join(dflow_directory, &#39;outputs&#39;)</span>
-
-        <span class="c1"># os.mkdir(inputs_path)</span>
-        <span class="c1"># os.mkdir(outputs_path)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">)</span>
 
         <span class="c1"># write boundary conditions to file</span>
-        <span class="n">bc_up_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">,</span> <span class="s1">&#39;boundriver_up_0001.cmp&#39;</span><span class="p">)</span>
-        <span class="n">bc_down_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">,</span> <span class="s1">&#39;boundriverdown_0001.cmp&#39;</span><span class="p">)</span>
+        <span class="n">bc_up_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">,</span>
+                                  <span class="s1">&#39;boundriver_up_0001.cmp&#39;</span><span class="p">)</span>
+
+        <span class="n">bc_down_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">,</span>
+                                    <span class="s1">&#39;boundriverdown_0001.cmp&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">upstream_bc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">bc_up_path</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">downstream_bc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">bc_down_path</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">vegetation_ascii</span> <span class="o">=</span> <span class="n">ESRIAsc</span><span class="p">(</span><span class="n">vegetation_map</span><span class="p">)</span>
 
-        <span class="n">veg_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">,</span> <span class="s1">&#39;n.pol&#39;</span><span class="p">)</span>
+        <span class="n">veg_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">,</span> <span class="s1">&#39;n.pol&#39;</span><span class="p">)</span>
 
         <span class="n">Pol</span><span class="o">.</span><span class="n">from_ascii</span><span class="p">(</span>
             <span class="n">veg2n</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vegetation_ascii</span><span class="p">,</span>
-                  <span class="n">_join_data_dir</span><span class="p">(</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;ripcas_inputs&#39;</span><span class="p">,</span>
-                                 <span class="s1">&#39;ripcas-data-requirements.xlsx&#39;</span><span class="p">)</span>
-                    <span class="p">)</span>
-                  <span class="p">)</span>
+                  <span class="n">veg_roughness_shearres_lookup</span><span class="p">,</span>
+                  <span class="n">streambed_roughness</span><span class="p">)</span>
         <span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">veg_path</span><span class="p">)</span>
 
         <span class="n">oj</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span>
 
-        <span class="n">pbs_path</span> <span class="o">=</span> <span class="n">oj</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">,</span> <span class="n">pbs_script_name</span><span class="p">)</span>
-        <span class="n">mdu_path</span> <span class="o">=</span> <span class="n">oj</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">,</span> <span class="s1">&#39;base.mdu&#39;</span><span class="p">)</span>
-        <span class="n">net_path</span> <span class="o">=</span> <span class="n">oj</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">,</span> <span class="s1">&#39;base_net.nc&#39;</span><span class="p">)</span>
-        <span class="n">ext_path</span> <span class="o">=</span> <span class="n">oj</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">,</span> <span class="s1">&#39;base.ext&#39;</span><span class="p">)</span>
-        <span class="n">brd_path</span> <span class="o">=</span> <span class="n">oj</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">,</span> <span class="s1">&#39;boundriverdown.pli&#39;</span><span class="p">)</span>
-        <span class="n">bru_path</span> <span class="o">=</span> <span class="n">oj</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">,</span> <span class="s1">&#39;boundriver_up.pli&#39;</span><span class="p">)</span>
+        <span class="n">pbs_path</span> <span class="o">=</span> <span class="n">oj</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">,</span> <span class="n">pbs_script_name</span><span class="p">)</span>
+        <span class="n">mdu_path</span> <span class="o">=</span> <span class="n">oj</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">,</span> <span class="s1">&#39;base.mdu&#39;</span><span class="p">)</span>
+        <span class="n">net_path</span> <span class="o">=</span> <span class="n">oj</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">,</span> <span class="s1">&#39;base_net.nc&#39;</span><span class="p">)</span>
+        <span class="n">ext_path</span> <span class="o">=</span> <span class="n">oj</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">,</span> <span class="s1">&#39;base.ext&#39;</span><span class="p">)</span>
+        <span class="n">brd_path</span> <span class="o">=</span> <span class="n">oj</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">,</span> <span class="s1">&#39;boundriverdown.pli&#39;</span><span class="p">)</span>
+        <span class="n">bru_path</span> <span class="o">=</span> <span class="n">oj</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">,</span> <span class="s1">&#39;boundriver_up.pli&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">dflow_shear_output</span> <span class="o">=</span>\
-            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">,</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">,</span>
                          <span class="s1">&#39;DFM_OUTPUT_base&#39;</span><span class="p">,</span>
                          <span class="s1">&#39;base_map.nc&#39;</span><span class="p">)</span>
 
@@ -236,19 +232,17 @@
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">brd_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="c1"># s = open(&#39;cord/data/dflow_inputs/boundriverdown.pli&#39;, &#39;r&#39;).read()</span>
             <span class="n">p</span> <span class="o">=</span> <span class="n">_join_data_dir</span><span class="p">(</span><span class="n">oj</span><span class="p">(</span><span class="s1">&#39;dflow_inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;boundriverdown.pli&#39;</span><span class="p">))</span>
             <span class="n">s</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">bru_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="c1"># s = open(&#39;cord/data/dflow_inputs/boundriver_up.pli&#39;, &#39;r&#39;).read()</span>
             <span class="n">p</span> <span class="o">=</span> <span class="n">_join_data_dir</span><span class="p">(</span><span class="n">oj</span><span class="p">(</span><span class="s1">&#39;dflow_inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;boundriver_up.pli&#39;</span><span class="p">))</span>
             <span class="n">s</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 
         <span class="n">bkdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">dflow_directory</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">dflow_run_directory</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">dflow_run_fun</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
 
@@ -308,7 +302,9 @@
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shear_asc</span><span class="p">,</span> <span class="n">ESRIAsc</span><span class="p">),</span>\
                 <span class="s1">&#39;shear_asc must be of type ESRIAsc if provided&#39;</span>
 
-        <span class="n">shear_asc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dflow_directory</span><span class="p">,</span> <span class="s1">&#39;shear_out.asc&#39;</span><span class="p">))</span>
+        <span class="n">shear_asc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dflow_run_directory</span><span class="p">,</span> <span class="s1">&#39;shear_out.asc&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
 
         <span class="n">output_veg_ascii</span> <span class="o">=</span> <span class="n">ripcas</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">vegetation_ascii</span><span class="p">,</span> <span class="n">zone_map_path</span><span class="p">,</span>
@@ -501,10 +497,45 @@
     <span class="n">os</span><span class="o">.</span><span class="n">fsync</span><span class="p">(</span><span class="n">log_f</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
 
 
-<span class="k">def</span> <span class="nf">modelrun_series</span><span class="p">(</span><span class="n">data_dir</span><span class="p">,</span> <span class="n">initial_vegetation_map</span><span class="p">,</span> <span class="n">vegzone_map</span><span class="p">,</span>
-                    <span class="n">ripcas_required_data</span><span class="p">,</span> <span class="n">peak_flows_file</span><span class="p">,</span> <span class="n">geometry_file</span><span class="p">,</span>
-                    <span class="n">streambed_roughness</span><span class="p">,</span> <span class="n">streambed_slope</span><span class="p">,</span> <span class="n">dflow_run_fun</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                    <span class="n">log_f</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="modelrun_series"><a class="viewcode-back" href="../../api.html#cord.modelrun.modelrun_series">[docs]</a><span class="k">def</span> <span class="nf">modelrun_series</span><span class="p">(</span><span class="n">data_dir</span><span class="p">,</span> <span class="n">initial_vegetation_map</span><span class="p">,</span> <span class="n">vegzone_map</span><span class="p">,</span>
+                    <span class="n">veg_roughness_shearres_lookup</span><span class="p">,</span> <span class="n">peak_flows_file</span><span class="p">,</span>
+                    <span class="n">geometry_file</span><span class="p">,</span> <span class="n">streambed_roughness</span><span class="p">,</span>
+                    <span class="n">streambed_floodplain_roughness</span><span class="p">,</span> <span class="n">streambed_slope</span><span class="p">,</span>
+                    <span class="n">dflow_run_fun</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">log_f</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Run a series of flow and succession models with peak flows given in</span>
+<span class="sd">    peak_flows_file.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        data_dir (str): write directory for modelrun series. Must exist</span>
+<span class="sd">        initial_vegetation_map (str): location of year zero veg map</span>
+<span class="sd">        vegzone_map (str): vegetation zone map location</span>
+<span class="sd">        veg_roughness_shearres_lookup (str): Excel spreadsheet containing</span>
+<span class="sd">            conversion from vegetation code to roughness value and vegetation</span>
+<span class="sd">            code to shear stress resistance</span>
+<span class="sd">        peak_flow_file (str): location of text file record of peak flows in</span>
+<span class="sd">            cubic meters per second</span>
+<span class="sd">        geometry_file (str): location of channel geometry at the downstream</span>
+<span class="sd">            location for calculating streamflow</span>
+<span class="sd">        streambed_roughness (float): streambed roughness in channel only; used</span>
+<span class="sd">            when converting vegetation map to roughness map</span>
+<span class="sd">        streambed_floodplain_roughness (float): an average roughness of</span>
+<span class="sd">            stream channel and floodplain used in calculation of downstream</span>
+<span class="sd">            boundary condition for DFLOW</span>
+<span class="sd">        streambed_slope (float): rise over run of the channel used in</span>
+<span class="sd">            calculation of downstream boundary condition for DFLOW</span>
+<span class="sd">        dflow_run_fun (function): function delegate for the user to provide a</span>
+<span class="sd">            custom way to run DFLOW. If none is given, defaults to</span>
+<span class="sd">            submitting a PBS job as is done on CARC systems</span>
+<span class="sd">        log_f (str): log file. if none is given, defaults to `data_dir`.log</span>
+<span class="sd">            with dashes replacing slashes</span>
+<span class="sd">        debug (bool): whether or not to run in debug mode. If running in debug</span>
+<span class="sd">            mode, each DFLOW run returns fake data and</span>
+<span class="sd">            each RipCAS run takes cord/data/shear_out.asc as input</span>
+
+<span class="sd">        returns:</span>
+<span class="sd">            None</span>
+<span class="sd">    &#39;&#39;&#39;</span>
 
     <span class="k">if</span> <span class="n">dflow_run_fun</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
 
@@ -518,7 +549,12 @@
             <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">log_f</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">log_f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">data_dir</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="s1">&#39;.log&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+        <span class="n">first_char</span> <span class="o">=</span> <span class="n">data_dir</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">root_log_f</span> <span class="o">=</span> <span class="n">first_char</span> <span class="k">if</span> <span class="n">first_char</span> <span class="o">!=</span> <span class="s1">&#39;/&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">root_log_f</span> <span class="o">+=</span> <span class="n">data_dir</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+        <span class="n">log_f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">root_log_f</span> <span class="o">+</span> <span class="s1">&#39;.log&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
 
     <span class="k">else</span><span class="p">:</span>
         <span class="n">log_f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">log_f</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
@@ -535,7 +571,7 @@
 
     <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">initial_vegetation_map</span><span class="p">,</span> <span class="n">inputs_dir</span><span class="p">)</span>
     <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">vegzone_map</span><span class="p">,</span> <span class="n">inputs_dir</span><span class="p">)</span>
-    <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ripcas_required_data</span><span class="p">,</span> <span class="n">inputs_dir</span><span class="p">)</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">veg_roughness_shearres_lookup</span><span class="p">,</span> <span class="n">inputs_dir</span><span class="p">)</span>
     <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">peak_flows_file</span><span class="p">,</span> <span class="n">inputs_dir</span><span class="p">)</span>
     <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">geometry_file</span><span class="p">,</span> <span class="n">inputs_dir</span><span class="p">)</span>
 
@@ -543,14 +579,15 @@
 
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">roughness_slope_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;roughness</span><span class="se">\t</span><span class="s1">slope</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">streambed_roughness</span><span class="p">,</span> <span class="n">streambed_slope</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">streambed_roughness</span><span class="p">,</span> <span class="n">streambed_slope</span><span class="p">))</span>
 
     <span class="k">for</span> <span class="n">flow_idx</span><span class="p">,</span> <span class="n">flow</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">peak_flows</span><span class="p">):</span>
 
         <span class="n">mr</span> <span class="o">=</span> <span class="n">ModelRun</span><span class="p">()</span>
 
         <span class="n">mr</span><span class="o">.</span><span class="n">calculate_bc</span><span class="p">(</span>
-            <span class="n">flow</span><span class="p">,</span> <span class="n">geometry_file</span><span class="p">,</span> <span class="n">streambed_roughness</span><span class="p">,</span> <span class="n">streambed_slope</span>
+            <span class="n">flow</span><span class="p">,</span> <span class="n">geometry_file</span><span class="p">,</span>
+            <span class="n">streambed_floodplain_roughness</span><span class="p">,</span> <span class="n">streambed_slope</span>
         <span class="p">)</span>
 
         <span class="n">mr_log</span><span class="p">(</span>
@@ -569,11 +606,16 @@
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
-            <span class="n">mr</span><span class="o">.</span><span class="n">run_dflow</span><span class="p">(</span><span class="n">dflow_dir</span><span class="p">,</span> <span class="n">veg_file</span><span class="p">)</span>
+            <span class="n">mr</span><span class="o">.</span><span class="n">run_dflow</span><span class="p">(</span><span class="n">dflow_dir</span><span class="p">,</span> <span class="n">veg_file</span><span class="p">,</span>
+                         <span class="n">veg_roughness_shearres_lookup</span><span class="p">,</span> <span class="n">streambed_roughness</span><span class="p">)</span>
             <span class="n">job_id</span> <span class="o">=</span> <span class="s1">&#39;debug&#39;</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">p_ref</span> <span class="o">=</span> <span class="n">mr</span><span class="o">.</span><span class="n">run_dflow</span><span class="p">(</span><span class="n">dflow_dir</span><span class="p">,</span> <span class="n">veg_file</span><span class="p">,</span> <span class="n">dflow_run_fun</span><span class="o">=</span><span class="n">dflow_fun</span><span class="p">)</span>
+            <span class="n">p_ref</span> <span class="o">=</span> <span class="n">mr</span><span class="o">.</span><span class="n">run_dflow</span><span class="p">(</span><span class="n">dflow_dir</span><span class="p">,</span> <span class="n">veg_file</span><span class="p">,</span>
+                                 <span class="n">veg_roughness_shearres_lookup</span><span class="p">,</span>
+                                 <span class="n">streambed_roughness</span><span class="p">,</span>
+                                 <span class="n">dflow_run_fun</span><span class="o">=</span><span class="n">dflow_fun</span><span class="p">)</span>
+
             <span class="n">job_id</span> <span class="o">=</span> <span class="n">p_ref</span><span class="o">.</span><span class="n">communicate</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="n">mr_log</span><span class="p">(</span><span class="n">log_f</span><span class="p">,</span> <span class="s1">&#39;Job ID {0} submitted for DFLOW run {1}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -618,12 +660,12 @@
 
         <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
             <span class="n">p</span> <span class="o">=</span> <span class="n">_join_data_dir</span><span class="p">(</span><span class="s1">&#39;shear_out.asc&#39;</span><span class="p">)</span>
-            <span class="n">mr</span><span class="o">.</span><span class="n">run_ripcas</span><span class="p">(</span><span class="n">vegzone_map</span><span class="p">,</span> <span class="n">ripcas_required_data</span><span class="p">,</span> <span class="n">ripcas_dir</span><span class="p">,</span>
-                          <span class="n">shear_asc</span><span class="o">=</span><span class="n">ESRIAsc</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+            <span class="n">mr</span><span class="o">.</span><span class="n">run_ripcas</span><span class="p">(</span><span class="n">vegzone_map</span><span class="p">,</span> <span class="n">veg_roughness_shearres_lookup</span><span class="p">,</span>
+                          <span class="n">ripcas_dir</span><span class="p">,</span> <span class="n">shear_asc</span><span class="o">=</span><span class="n">ESRIAsc</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
 
         <span class="n">mr_log</span><span class="p">(</span><span class="n">log_f</span><span class="p">,</span> <span class="s1">&#39;RipCAS run {0} finished</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">flow_idx</span><span class="p">))</span>
 
-    <span class="n">log_f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">log_f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
 
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
@@ -636,13 +678,13 @@
 <span class="s1">Author: Matthew Turner</span>
 
 <span class="s1">Usage:</span>
-<span class="s1">    python ripcas_dflow/modelrun.py data_dir initial_vegetation vegzone_map ripcas_required_data</span><span class="se">\</span>
+<span class="s1">    python ripcas_dflow/modelrun.py data_dir initial_vegetation vegzone_map veg_roughness_shearres_lookup</span><span class="se">\</span>
 <span class="s1">            peak_flows_file geometry_file streambed_roughness streambed_slope</span>
 
 <span class="s1">    data_dir: directory to hold each time step of the model run</span>
 <span class="s1">    initial_vegetation: .asc file with initial vegetation map</span>
 <span class="s1">    vegzone_map: .asc file with vegetation zone information</span>
-<span class="s1">    ripcas_required_data: .xlsx file with veg type-to-n and shear resistance-per-veg type information</span>
+<span class="s1">    veg_roughness_shearres_lookup: .xlsx file with veg type-to-n and shear resistance-per-veg type information</span>
 <span class="s1">    peak_flows_file: file with a column of peak flood flow in cubic meters per second</span>
 <span class="s1">    geometry_file: xyz file representing geometry of downstream cross section for boundary conditions calculation</span>
 <span class="s1">    streambed_roughness: floating point number for the roughness value of the streambed</span>
@@ -659,20 +701,22 @@
     <span class="n">data_dir</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">initial_vegetation_map</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
     <span class="n">vegzone_map</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
-    <span class="n">ripcas_required_data</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+    <span class="n">veg_roughness_shearres_lookup</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
     <span class="n">peak_flows_file</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
     <span class="n">geometry_file</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
     <span class="n">streambed_roughness</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
     <span class="n">streambed_slope</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span>
 
     <span class="n">modelrun_series</span><span class="p">(</span><span class="n">data_dir</span><span class="p">,</span> <span class="n">initial_vegetation_map</span><span class="p">,</span> <span class="n">vegzone_map</span><span class="p">,</span>
-                     <span class="n">ripcas_required_data</span><span class="p">,</span> <span class="n">peak_flows_file</span><span class="p">,</span> <span class="n">geometry_file</span><span class="p">,</span>
+                     <span class="n">veg_roughness_shearres_lookup</span><span class="p">,</span> <span class="n">peak_flows_file</span><span class="p">,</span> <span class="n">geometry_file</span><span class="p">,</span>
                      <span class="n">streambed_roughness</span><span class="p">,</span> <span class="n">streambed_slope</span><span class="p">,</span> <span class="n">dflow_run_fun</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                      <span class="n">log_f</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_join_data_dir</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
-
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Join the filename, f, to the default data directory</span>
+<span class="sd">    &#39;&#39;&#39;</span>
     <span class="n">data_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span> <span class="s1">&#39;data&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">data_dir</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>

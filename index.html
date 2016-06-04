@@ -48,17 +48,6 @@ Visualization, and Exploration (WC-WAVE). This software contains
 the RipCAS model itself, which is an open-source, Riparian-zone specific
 version of the
 <a class="reference external" href="http://www.casimir-software.de/ENG/veg_eng.html">CASiMiR vegetation model</a>.</p>
-<p>There is no standalone wrapper for DFLOW, but we do provide convenience
-functions for executing &#8220;model runs&#8221; in which DFLOW is first run with some
-initial vegetation information to generate a map of shear stress, which is then
-taken by RipCAS to determine if a vegetation community is destroyed and set to
-age zero.</p>
-<p>It should be noted, then, that the DFLOW executable is required to be installed
-and available on whatever system will run CoRD. You can get the source code and
-find installation instructions for DFLOW on the <a class="reference external" href="https://www.deltares.nl/en/software/module/d-flow-flexible-mesh/">DFLOW website</a>
-(maybe...currently their open source software portal seems to be down and the
-above link says that users must have a license).</p>
-<p>To get the CoRD package, please visit the section <a class="reference internal" href="install.html"><span class="doc">Install Instructions</span></a></p>
 <p>Contents:</p>
 <div class="toctree-wrapper compound">
 <ul>
@@ -76,6 +65,227 @@ above link says that users must have a license).</p>
 </ul>
 </li>
 </ul>
+</div>
+<p>There is no standalone wrapper for DFLOW, but we do provide convenience
+functions for executing &#8220;model runs&#8221; in which DFLOW is first run with some
+initial vegetation information to generate a map of shear stress, which is then
+taken by RipCAS to determine if a vegetation community is destroyed and set to
+age zero.</p>
+<p>It should be noted, then, that the DFLOW executable is required to be installed
+and available on whatever system will run CoRD. You can get the source code and
+find installation instructions for DFLOW on the <a class="reference external" href="https://www.deltares.nl/en/software/module/d-flow-flexible-mesh/">DFLOW website</a>
+(maybe...currently their open source software portal seems to be down and the
+above link says that users must have a license).</p>
+<p>To get the CoRD package, please visit the section <a class="reference internal" href="install.html"><span class="doc">Install Instructions</span></a></p>
+</div>
+<div class="section" id="quickstart">
+<h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h1>
+<p>This guide is for users of the CARC shared system at UNM. We must load the
+anaconda module then activate our Anaconda environment. First</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ module load anaconda
+</pre></div>
+</div>
+<p>Since <code class="docutils literal"><span class="pre">conda</span></code> is the preferred way here, to get started</p>
+<p>This guide is for CARC users who do not have access to the <code class="docutils literal"><span class="pre">virtualenv</span></code> command.
+If you prefer <code class="docutils literal"><span class="pre">virtualenv</span></code> then instead of the above command, run</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ virtualenv cord
+</pre></div>
+</div>
+<p>then activate your new virtual environment by running</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ <span class="nb">source</span> cord/bin/activate
+</pre></div>
+</div>
+<p>Now that you&#8217;ve created and activated an environment you can install <code class="docutils literal"><span class="pre">cord</span></code>.
+Note that whether you&#8217;re using Anaconda or a virtual environment, the
+environment name will precede your command line as shown in the snippets below.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="o">(</span>cord<span class="o">)</span>$ pip install cord
+</pre></div>
+</div>
+<p>To see that cord is present, just run cord:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="o">(</span>cord<span class="o">)</span>$ cord
+</pre></div>
+</div>
+<p>You should see the following help message.</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>Usage: cord [OPTIONS] COMMAND [ARGS]...
+
+    Options:
+      --debug
+      --logfile TEXT
+      --help          Show this message and exit.
+
+    Commands:
+      from_config  Run CoRD with params from &lt;config_file&gt;
+  generate_config Generate a configuration file
+      interactive  Run CoRD interactively or with options
+      post_hs      Post the model run data to HydroShare
+</pre></div>
+</div>
+<p>Follow this or see the section <a class="reference internal" href="usage.html"><span class="doc">Usage</span></a> for more information. Note to get
+the help for a specific subcommand, you can run <code class="docutils literal"><span class="pre">cord</span> <span class="pre">&lt;subcommand&gt;</span></code> with no
+arguments. For example, try <code class="docutils literal"><span class="pre">cord</span> <span class="pre">from_config</span></code>.</p>
+<div class="section" id="use-cord-to-run-simulations-for-a-series-of-streamflows">
+<h2>Use CoRD to run simulations for a series of streamflows<a class="headerlink" href="#use-cord-to-run-simulations-for-a-series-of-streamflows" title="Permalink to this headline">¶</a></h2>
+<p>This will kick off a process that takes days to complete. Each individual run of
+DFLOW is given a wall time of eight hours. There are thirty years of DFLOW runs
+to finish, so we are looking at 8*30 = 240 hours of modeling.
+As such, we don&#8217;t want to rely on
+our connection to Ulam or whatever other CARC machine to be sustained this whole
+time. We&#8217;ll use the Unix tool <code class="docutils literal"><span class="pre">screen</span></code> to create a session that will continue
+after we disconnect our terminal from the server.</p>
+<p>Here is a preview of the steps we go through to use screen to run a CoRD model
+series:</p>
+<ol class="arabic simple">
+<li>Create a new screen by name that we can go back to after logging out then logging back in</li>
+<li>Kick off a new series of CoRD modelruns</li>
+<li>Exit the screen; the CoRD modelruns will continue until finished</li>
+<li>Check progress by looking at the logfile and the PBS queue</li>
+<li>To see if the process has stopped, &#8220;re-attach&#8221; to the screen by using its name and see if any informative output has been printed in the screen</li>
+</ol>
+<p>Once we are sure CoRD has performed the modelruns as expected, we can use the
+<code class="docutils literal"><span class="pre">post_hs</span></code> utility to post our data to HydroShare for offline analysis.</p>
+<p><code class="docutils literal"><span class="pre">screen</span></code> is installed on CARC systems so there is no need to install it. We can
+get right to using it.</p>
+<div class="section" id="creating-and-working-with-a-new-screen">
+<h3>Creating and working with a new screen<a class="headerlink" href="#creating-and-working-with-a-new-screen" title="Permalink to this headline">¶</a></h3>
+<p>To create a new screen with a name, run</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>screen -S &lt;screen-name&gt;
+</pre></div>
+</div>
+<p>It&#8217;s best to name your new screen something memorable and related to what the
+CoRD scenario is you&#8217;re running. Say our peak flows are simulating 100-year
+floods every 3 years. You might create a new screen called <code class="docutils literal"><span class="pre">100yrEvery3</span></code> like so</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>screen -S 100yrEvery3
+</pre></div>
+</div>
+<p>After this, you&#8217;ll be in your newly-created screen named <code class="docutils literal"><span class="pre">100yrEvery3</span></code>. You can
+exit the screen by pressing <code class="docutils literal"><span class="pre">Ctrl-A</span></code> then <code class="docutils literal"><span class="pre">D</span></code> (don&#8217;t press shift: if shift is
+used that will be explicitly stated). The steps you just performed were</p>
+<ol class="arabic simple">
+<li>Creating and &#8216;attaching&#8217; to a new screen named <code class="docutils literal"><span class="pre">100yrEvery3</span></code></li>
+<li>&#8216;Detaching&#8217; from that screen</li>
+</ol>
+<p>Now let&#8217;s add one more step, let&#8217;s re-attach to that screen. To do this,</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>screen -r 100yrEvery3
+</pre></div>
+</div>
+<p>Now you will see the environment you had previously detached from. If you had
+run any commands in the screen you should be able to see their outputs now.</p>
+<p>One useful command for working within a <code class="docutils literal"><span class="pre">screen</span></code> is enabling &#8220;copy mode&#8221; which
+incidentally also allows you to scroll. To do this, press <code class="docutils literal"><span class="pre">Ctrl-A</span></code> then <code class="docutils literal"><span class="pre">[</span></code>. To
+exit copy mode, press <code class="docutils literal"><span class="pre">Esc</span></code>.</p>
+<p>To list all available screens:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>screen -list
+</pre></div>
+</div>
+<p>To kill the existing screen <code class="docutils literal"><span class="pre">100yrEvery3</span></code> and all processes running within it:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>screen -S 100yrEvery3 -X quit
+</pre></div>
+</div>
+<p>which basically says &#8220;using screen with name 100yrEvery3 execute the quit
+command&#8221;.</p>
+<p>Next we&#8217;ll show how to start a modelrun series, then continue to talk about
+how to</p>
+</div>
+<div class="section" id="cord-modelrun-series-part-1-generate-config-file">
+<h3>CoRD modelrun series Part 1: generate config file<a class="headerlink" href="#cord-modelrun-series-part-1-generate-config-file" title="Permalink to this headline">¶</a></h3>
+<p>Now that we know how to use screen to create a persistent environment in which
+we will run our models, let&#8217;s get ready to run a CoRD modelrun series. To begin,
+we need to generate a configuration file that we will edit and use as input
+to the cord command <code class="docutils literal"><span class="pre">cord</span> <span class="pre">from_config</span></code>. There is a default configuration file
+included with the <code class="docutils literal"><span class="pre">cord</span></code> distribution you installed with <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cord</span></code>,
+and can be found in the
+<a class="reference external" href="https://github.com/VirtualWatershed/CoRD/blob/master/cord/default.conf.template">GitHub repository: cord/default.conf.template</a>.
+You can copy this to your current directory and give it the name <code class="docutils literal"><span class="pre">my.conf</span></code> by
+running</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>cord generate_config -n my.conf
+</pre></div>
+</div>
+<p>If you simply run <code class="docutils literal"><span class="pre">cord</span> <span class="pre">generate_config</span></code> it will make a copy of
+<code class="docutils literal"><span class="pre">default.conf.template</span></code> in your current directory, but give it the name
+<code class="docutils literal"><span class="pre">default.conf</span></code>. Currently this will overwrite any previously generate
+configuration file with the same name, so be careful.</p>
+<p>The next step in generating a configuration file is modifying the template file
+that you&#8217;ve just copied to your current directory. If you look at your
+freshly-copied config file, you&#8217;ll see that most fields are blank. The fields
+that are filled in are default stream channel and floodplain parameters. These
+must be present or else running <code class="docutils literal"><span class="pre">cord</span> <span class="pre">from_config</span></code> will fail.</p>
+<p>Two other fields are required: <code class="docutils literal"><span class="pre">DATA_DIR</span></code> and <code class="docutils literal"><span class="pre">PEAK_FLOWS_FILE</span></code>.
+<code class="docutils literal"><span class="pre">DATA_DIR</span></code> must be a directory that already exists&#8211;this is where all the
+RipCAS and DFLOW files will be stored for the modelrun series. The
+<code class="docutils literal"><span class="pre">PEAK_FLOWS_FILE</span></code> is the series of peak yearly streamflows in cubic meters per
+second. You can <a class="reference download internal" href="_downloads/peak.txt" download=""><code class="xref download docutils literal"><span class="pre">download</span> <span class="pre">an</span> <span class="pre">example</span> <span class="pre">peak</span> <span class="pre">flows</span> <span class="pre">file</span> <span class="pre">here</span></code></a>. The peak flows text file must have <code class="docutils literal"><span class="pre">Peak.Flood</span></code> as the
+first header line.</p>
+<p>If not specified, all the other config file fields will be filled in
+with the latest data we have for the Jemez watershed. Currently we don&#8217;t use the
+HydroShare configuration info at all.</p>
+</div>
+</div>
+<div class="section" id="end-to-end-example">
+<h2>End-to-end example<a class="headerlink" href="#end-to-end-example" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="cord-modelrun-series-part-2-make-a-new-screen-and-run-cord-from-config">
+<h3>CoRD modelrun series Part 2: Make a new screen and run <code class="docutils literal"><span class="pre">cord</span> <span class="pre">from_config</span></code><a class="headerlink" href="#cord-modelrun-series-part-2-make-a-new-screen-and-run-cord-from-config" title="Permalink to this headline">¶</a></h3>
+<p>Now, let&#8217;s assume you have a text file of peak flows that simulate 100-year
+floods every three years called <code class="docutils literal"><span class="pre">100yrEvery3.txt</span></code> and you&#8217;ll use this to
+drive the CoRD simulations.  Let&#8217;s first create a config file that is
+descriptive of the scenario at hand:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>cord generate_config -n 100yrEvery3.conf
+</pre></div>
+</div>
+<p>OK, now let&#8217;s say your data will go to a directory called <code class="docutils literal"><span class="pre">100-3</span></code> to simplify
+a little bit. Create this directory (<code class="docutils literal"><span class="pre">mkdir</span> <span class="pre">100-3</span></code>). Now edit
+<code class="docutils literal"><span class="pre">100yrEvery3.conf</span></code> to look like this</p>
+<div class="highlight-cfg"><div class="highlight"><pre><span></span><span class="k">[General]</span>
+
+<span class="na">DATA_DIR</span> <span class="o">=</span> <span class="s">100-3 # must create the directory before running</span>
+<span class="na">INITIAL_VEGETATION_MAP</span> <span class="o">=</span>
+<span class="na">VEGZONE_MAP</span> <span class="o">=</span>
+<span class="na">VEG_ROUGHNESS_SHEARRES_LOOKUP</span> <span class="o">=</span>
+<span class="na">PEAK_FLOWS_FILE</span> <span class="o">=</span> <span class="s">100yrEvery3.txt</span>
+<span class="na">GEOMETRY_FILE</span> <span class="o">=</span>
+
+<span class="na">STREAMBED_ROUGHNESS</span> <span class="o">=</span> <span class="s">0.035  # in-channel only</span>
+<span class="na">STREAMBED_FLOODPLAIN_ROUGHNESS</span> <span class="o">=</span> <span class="s">0.04  # including out-of-channel for BC calculation</span>
+<span class="na">STREAMBED_SLOPE</span> <span class="o">=</span> <span class="s">0.001  # also used in BC calculation</span>
+
+<span class="c1">#</span>
+<span class="c1"># python import style, e.g. my_dflow_module.my_dflow_fun</span>
+<span class="c1"># defaults to a function that calls qsub dflow_mpi.pbs</span>
+<span class="na">DFLOW_RUN_FUN</span> <span class="o">=</span>
+<span class="c1"># will default to the data_dir with dashes replacing slashes if blank</span>
+<span class="na">LOG_F</span> <span class="o">=</span>
+</pre></div>
+</div>
+<p>Now we will create a screen of the same name and start our modelrun series.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>screen -S 100yrEvery3
+</pre></div>
+</div>
+<p>Now in your new screen</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>cord --log-file<span class="o">=</span>100-3.log from_config 100yrEvery3.conf
+</pre></div>
+</div>
+<p>Note here we set a custom log file so that we can easily see the model progress
+as it runs.</p>
+<p>Exit the screen. As the model runs you can check two things to get an idea of
+the progress. First, check the last few lines of the log file like so</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>tail 100-3.log
+</pre></div>
+</div>
+<p>and investigate the PBS job queue for your username. For me that command is</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>qstat -u maturner
+</pre></div>
+</div>
+<p>When the process has finished you can export your data to HydroShare by
+running the following command, substituting your username and password where
+appropriate. Also change the resource title and keywords as you see fit. This
+will help you, your colleagues, and other researchers discover your data later.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>cord post_hs --modelrun-dir<span class="o">=</span>100-3 <span class="se">\</span>
+    --resource-title<span class="o">=</span><span class="s1">&#39;100 year floods every three years&#39;</span> <span class="se">\</span>
+    --username<span class="o">=</span>my-username <span class="se">\</span>
+    --password<span class="o">=</span>my-password <span class="se">\</span>
+    --keyword<span class="o">=</span>Jemez --keyword<span class="o">=</span><span class="s1">&#39;climate change&#39;</span>
+</pre></div>
+</div>
+</div>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
