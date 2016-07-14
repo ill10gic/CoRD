@@ -40,7 +40,7 @@ tests_require = [
 setup(
     name='cord',
     description='Coupled RipCAS-DFLOW for Vegetation and Hydrology of Streams',
-    version='0.2.0',
+    version='0.2.1',
     author_email='maturner01@gmail.com',
     author='Matthew Turner',
     license='BSD3',
