@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Command-Line Interface &mdash; CoRD</title>
+    <title>CoRD Process &mdash; CoRD</title>
     
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -24,9 +24,8 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="shortcut icon" href="_static/vwlogo_grey_favicon-32.png"/>
     <link rel="top" title="CoRD" href="index.html" />
-    <link rel="next" title="Implementation Details" href="implementation_details.html" />
-    <link rel="prev" title="Install Instructions" href="install.html" />
 <link href='https://fonts.googleapis.com/css?family=Ubuntu+Mono|Pacifico|Open+Sans|Metrophobic' rel='stylesheet' type='text/css'>
    
   
@@ -40,30 +39,34 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="command-line-interface">
-<h1>Command-Line Interface<a class="headerlink" href="#command-line-interface" title="Permalink to this headline">¶</a></h1>
-<div class="toctree-wrapper compound">
-</div>
-<div class="section" id="code">
-<h2>code<a class="headerlink" href="#code" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">R</span><span class="p">:</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">yo</span> <span class="o">=</span> <span class="s1">&#39;yo!&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">giorno</span> <span class="o">=</span> <span class="s1">&#39;cat&#39;</span>
-
-<span class="n">r</span> <span class="o">=</span> <span class="n">R</span><span class="p">()</span>
-<span class="k">assert</span> <span class="n">r</span><span class="o">.</span><span class="n">giorno</span> <span class="o">==</span> <span class="s1">&#39;cat&#39;</span>
-</pre></div>
-</div>
-<div class="highlight-javascript"><div class="highlight"><pre><span></span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="s1">&#39;yo&#39;</span><span class="p">;</span>
-
-<span class="k">if</span> <span class="p">(</span><span class="nx">i</span> <span class="o">!==</span> <span class="s1">&#39;yo&#39;</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;something very strange has happened&#39;</span><span class="p">);</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</div>
+  <div class="section" id="cord-process">
+<h1>CoRD Process<a class="headerlink" href="#cord-process" title="Permalink to this headline">¶</a></h1>
+<p>Here we describe what CoRD is doing when it runs. This should be
+useful for developers looking to modify the code or users wanting to ensure
+the system is designed properly for scientific use. This will also help
+when the time comes to use CoRD with a new watershed.</p>
+<p>In the most broad sense, CoRD is a two-step model. The first step is
+to run DFLOW and the second step is to run RipCAS.  Breaking this down further,
+the user first provides a vegetation map (details in the next paragraph) in
+ESRI .asc format, which is converted by CoRD to a roughness map, using a
+vegetation-to-roughness lookup table provided by the user. There are many
+files that DFLOW requires that we will cover later. CoRD submits the DFLOW
+job to the job queue, observes the job status, and once the job finishes,
+extracts the shear stress from the DFLOW output netCDF and converts the
+mesh to an ESRI .asc map of shear stress. Then using the vegetation map,
+the vegetation zone map, and the shear resistance lookup table, RipCAS
+calculates the change in vegetation at each point on the ESRI .asc grid
+given the shear stress output from DFLOW. The output vegetation map is then
+used as input to the subsequent DFLOW run and the process repeats. This is
+done for every year of peak flow given in the peak flows file, just a
+single-column file with flows in units of ??????</p>
+<p>To begin, the user provides some parameters: file and directory locations
+and three numerical parameters. The directory that must be provided is the
+location where the simulation happens. All input files are copied here
+so that it is trivial to tell which inputs were used for a particular
+model run. The files are the initial vegetation map of the watershed, the
+vegetation zone map for the watershed, an Excel spreadsheet for looking up
+the shear resistance.</p>
 </div>
 
 
@@ -72,6 +75,9 @@
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/cord_of_wood.jpg" alt="Logo"/>
+            </a></p>
 <h1 class="logo"><a href="index.html">CoRD</a></h1>
 
 
@@ -93,32 +99,19 @@
 
 <h3>Navigation</h3>
 <div id="sidebar_toctree">
-  <ul class="current">
+  <ul>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install.html#installation-with-anaconda">Installation with Anaconda</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Command-Line Interface</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#code">code</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="implementation_details.html">Implementation Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 </ul>
 
 </div>
 <ul class="footer_nav">
-      <li class="prev">
-        Previous topic: <a href="install.html">Install Instructions</a>
-      </li>
-      <li class="next">
-        Next topic: <a href="implementation_details.html">Implementation Details</a>
-      </li>
 </ul>
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="install.html" title="previous chapter">Install Instructions</a></li>
-      <li>Next: <a href="implementation_details.html" title="next chapter">Implementation Details</a></li>
   </ul></li>
 </ul>
 </div>
@@ -137,7 +130,7 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2016, Matthew Turner, Sarah Miller, Angela Gregory, Mark Stone, and Dan Cadol.
+      &copy;2016, Matthew Turner, Sarah Miller, Angela Gregory, and Dan Cadol.
 
     
   </body>

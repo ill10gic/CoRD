@@ -1,0 +1,31 @@
+CoRD Process
+============
+
+Here we describe what CoRD is doing when it runs. This should be
+useful for developers looking to modify the code or users wanting to ensure
+the system is designed properly for scientific use. This will also help
+when the time comes to use CoRD with a new watershed.
+
+In the most broad sense, CoRD is a two-step model. The first step is 
+to run DFLOW and the second step is to run RipCAS.  Breaking this down further,
+the user first provides a vegetation map (details in the next paragraph) in 
+ESRI .asc format, which is converted by CoRD to a roughness map, using a
+vegetation-to-roughness lookup table provided by the user. There are many
+files that DFLOW requires that we will cover later. CoRD submits the DFLOW 
+job to the job queue, observes the job status, and once the job finishes,
+extracts the shear stress from the DFLOW output netCDF and converts the 
+mesh to an ESRI .asc map of shear stress. Then using the vegetation map,
+the vegetation zone map, and the shear resistance lookup table, RipCAS
+calculates the change in vegetation at each point on the ESRI .asc grid
+given the shear stress output from DFLOW. The output vegetation map is then
+used as input to the subsequent DFLOW run and the process repeats. This is
+done for every year of peak flow given in the peak flows file, just a 
+single-column file with flows in units of ??????
+
+To begin, the user provides some parameters: file and directory locations
+and three numerical parameters. The directory that must be provided is the
+location where the simulation happens. All input files are copied here
+so that it is trivial to tell which inputs were used for a particular
+model run. The files are the initial vegetation map of the watershed, the
+vegetation zone map for the watershed, an Excel spreadsheet for looking up
+the shear resistance. 

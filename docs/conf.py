@@ -52,8 +52,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'CoRD'
-copyright = u'2016, Matthew Turner, Sarah Miller, Angela Gregory, Mark Stone, and Dan Cadol'
-author = u'Matthew Turner, Sarah Miller, Angela Gregory, Mark Stone, and Dan Cadol'
+copyright = u'2016, Matthew Turner, Sarah Miller, Angela Gregory, and Dan Cadol'
+author = u'Matthew Turner, Sarah Miller, Angela Gregory, and Dan Cadol'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -153,7 +153,7 @@ html_short_title = 'CoRD Docs'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#html_logo = None
+html_logo = 'cord_of_wood.jpg'
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
