@@ -11,8 +11,12 @@ import traceback
 import unittest
 
 from click.testing import CliRunner
+from netCDF4 import Dataset
 
-from cord import ESRIAsc, Pol, ripcas, veg2n, ModelRun
+from cord import (
+    ESRIAsc, Pol, ripcas, veg2n, ModelRun, shear_mesh_to_asc,
+    stitch_partitioned_output
+)
 from cord.scripts.cord import cli
 
 
@@ -100,10 +104,6 @@ class TestRipCASAndHelpers(unittest.TestCase):
         npol = Pol.from_ascii(nmap)
 
         assert npol == expected_pol
-
-    ### TODO
-    # def test_mesh_to_asc(self):
-        # assert False
 
 
 class TestModelRun(unittest.TestCase):
@@ -305,6 +305,55 @@ class TestCLI(unittest.TestCase):
         _test_modelrun_success(mr_dir)
 
         shutil.rmtree('test/data/modelrun')
+
+
+class TestMeshToAsc(unittest.testCase):
+    """
+
+    """
+    def setUp(self):
+        self.nc_names = [
+            os.path.join(
+                'test', 'data', 'tmp',
+                'meshes-to-asc', 'inputs', '{}.nc'.format(i)
+            )
+            for i in range(4)
+        ]
+
+        # on inspection found all the relevant vars are not also ds
+        for idx, name in enumerate(self.nc_names):
+            nc = Dataset(name, 'w')
+            nc.createVariable('FlowElem_xcc', float)
+            nc.createVariable('FlowElem_ycc', float)
+            nc.createVariable('FlowElemDomain', float)
+            nc.createVariable('taus', float)
+
+            vars_ = nc.variables
+            # TODO fill in variables
+            if idx == 0:
+                vars_['FlowElemDomain'][:] =\
+                    numpy.ndarray([0, 2, 1, 5, 5, 2, 3, 4, 2, 2, 2])
+
+        pass
+
+    def test_meshes_to_asc(self):
+
+        mesh_ncs = glob.glob(
+            os.path.join('test', 'data', 'tmp', 'meshes-to-asc', 'inputs', '*')
+        )
+
+        stitched = stitch_partitioned_output(mesh_ncs)
+
+        expected_asc = ESRIAsc(
+            os.path.join('test', 'data', 'tmp', 'meshes-to-asc',
+                         'expected_shear_grid.asc')
+        )
+
+        hdr = expected_asc.header_dict()
+
+        asc = shear_mesh_to_asc(stitched, hdr)
+
+        self.assertEquals(asc, expected_asc)
 
 
 def _set_up_for_hs_test(basedir):
