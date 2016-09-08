@@ -1,5 +1,7 @@
 from setuptools import setup, find_packages
 
+VERSION = '0.2.4'
+
 requires = [
     'backports.shutil-get-terminal-size>=1.0.0',
     'click>=6.6',
@@ -40,7 +42,7 @@ tests_require = [
 setup(
     name='cord',
     description='Coupled RipCAS-DFLOW for Vegetation and Hydrology of Streams',
-    version='0.2.3',
+    version=VERSION,
     author_email='maturner01@gmail.com',
     author='Matthew Turner',
     license='BSD3',
