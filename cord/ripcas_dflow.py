@@ -186,6 +186,11 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     return ESRIAsc(data=Series(data), **header_dict)
 
 
+def stitch_partitioned_output(mesh_ncs):
+
+    return mesh_ncs[0]
+
+
 def veg2n(veg_map, ripcas_required_data, streambed_roughness):
     """
     Creat an ESRIAsc representation of an ESRI .asc file that contains roughness

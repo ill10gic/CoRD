@@ -9,6 +9,7 @@ import responses
 import shutil
 import traceback
 import unittest
+import numpy as np
 
 from click.testing import CliRunner
 from netCDF4 import Dataset
@@ -307,7 +308,7 @@ class TestCLI(unittest.TestCase):
         shutil.rmtree('test/data/modelrun')
 
 
-class TestMeshToAsc(unittest.testCase):
+class TestMeshToAsc(unittest.TestCase):
     """
 
     """
@@ -315,13 +316,16 @@ class TestMeshToAsc(unittest.testCase):
         self.nc_names = [
             os.path.join(
                 'test', 'data', 'tmp',
-                'meshes-to-asc', 'inputs', '{}.nc'.format(i)
+                'jempatmdu_000{}_map.nc'.format(i)
             )
             for i in range(4)
         ]
 
+        os.mkdir('test/data/tmp')
+
         # on inspection found all the relevant vars are not also ds
         for idx, name in enumerate(self.nc_names):
+            print name
             nc = Dataset(name, 'w')
             nc.createVariable('FlowElem_xcc', float)
             nc.createVariable('FlowElem_ycc', float)
@@ -331,10 +335,37 @@ class TestMeshToAsc(unittest.testCase):
             vars_ = nc.variables
             # TODO fill in variables
             if idx == 0:
-                vars_['FlowElemDomain'][:] =\
-                    numpy.ndarray([0, 2, 1, 5, 5, 2, 3, 4, 2, 2, 2])
+                vars_['FlowElemDomain'][:] = [0, 0, 0, 0, 1, 2, 2, 3]
+                vars_['FlowElem_xcc'][:] =\
+                    [32.3, 34.5, 36.7, 38.1, 48.3, 33.3, 2.1, 1.0]
+                vars_['FlowElem_ycc'][:] =\
+                    [132.3, 134.5, 136.7, 138.1, 8.3, 133.3, 12.1, 111.0]
 
-        pass
+            elif idx == 1:
+                vars_['FlowElemDomain'][:] =\
+                    numpy.ndarray([0, 1, 1, 1, 1, 2, 2, 3])
+                vars_['FlowElem_xcc'][:] =\
+                    [32.3, 39.255, 40.25, 40.55, 41.1, 123.3, 4.1, 5.0]
+                vars_['FlowElem_ycc'][:] =\
+                    [232.3, 139.255, 140.25, 140.55, 141.1, 138.1, 8.3, 133.3]
+
+            elif idx == 2:
+                vars_['FlowElemDomain'][:] =\
+                    numpy.ndarray([0, 1, 2, 2, 2, 2, 3, 3])
+                vars_['FlowElem_xcc'][:] =\
+                    [32.3, 29.255, 42.2, 43.01, 44.2, 45.5, 14.1, 52.1]
+                vars_['FlowElem_ycc'][:] =\
+                    [232.3, 139.255, 142.2, 143.01, 144.2, 145.5, 8.3, 133.3]
+
+            elif idx == 3:
+                vars_['FlowElemDomain'][:] =\
+                    numpy.ndarray([1, 1, 1, 2, 3, 3, 3, 3])
+                vars_['FlowElem_xcc'][:] =\
+                    [32.3, 29.255, 42.2, 43.01, 49.2, 50.7, 51.6, 52.2]
+                vars_['FlowElem_ycc'][:] =\
+                    [232.3, 139.255, 142.2, 143.01, 149.2, 150.7, 151.6, 152.2]
+
+            vars_['taus'][:] = np.arange(8) * (idx + 1)
 
     def test_meshes_to_asc(self):
 
@@ -342,18 +373,40 @@ class TestMeshToAsc(unittest.testCase):
             os.path.join('test', 'data', 'tmp', 'meshes-to-asc', 'inputs', '*')
         )
 
+        # should return a netCDF
         stitched = stitch_partitioned_output(mesh_ncs)
+        xcc_stitched = stitched.variables('FlowElem_xcc')[:]
+        ycc_stitched = stitched.variables('FlowElem_ycc')[:]
 
-        expected_asc = ESRIAsc(
-            os.path.join('test', 'data', 'tmp', 'meshes-to-asc',
-                         'expected_shear_grid.asc')
+        xcc_expected = np.ndarray(
+            [32.3, 34.5, 36.7, 38.1,
+             39.255, 40.25, 40.55, 41.1,
+             42.2, 43.01, 44.2, 45.5,
+             49.2, 50.7, 51.6, 52.2
+             ]
+        )
+        ycc_expected = np.ndarray(
+            [132.13, 134.5, 136.7, 138.1,
+             139.255, 140.25, 140.55, 141.1,
+             142.2, 143.01, 144.2, 145.5,
+             149.2, 150.7, 151.6, 152.2
+             ]
         )
 
-        hdr = expected_asc.header_dict()
+        self.assertEqual(xcc_expected, xcc_stitched)
+        self.assertEqual(ycc_expected, ycc_stitched)
 
-        asc = shear_mesh_to_asc(stitched, hdr)
+        taus_expected = np.ndarray(
+            [0.0, 1.0, 2.0, 3.0,
+             2.0, 4.0, 6.0, 8.0,
+             6.0, 9.0, 12.0, 15.0,
+             16.0, 20.0, 24.0, 28.0
+             ]
+        )
 
-        self.assertEquals(asc, expected_asc)
+        taus_stitched = stitched.variables('taus')[:]
+
+        self.assertEqual(taus_expected, taus_stitched)
 
 
 def _set_up_for_hs_test(basedir):
