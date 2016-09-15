@@ -15,7 +15,7 @@ from click.testing import CliRunner
 from netCDF4 import Dataset
 
 from cord import (
-    ESRIAsc, Pol, ripcas, veg2n, ModelRun, shear_mesh_to_asc,
+    ESRIAsc, Pol, ripcas, veg2n, ModelRun,
     stitch_partitioned_output
 )
 from cord.scripts.cord import cli
@@ -372,12 +372,13 @@ class TestMeshToAsc(unittest.TestCase):
             os.path.join('test', 'data', 'tmp', '*')
         )
 
-        mesh_ncs = [Dataset(p) for p in mesh_nc_paths]
-
-        print mesh_ncs[0]
-
         # should return a netCDF
-        stitched = stitch_partitioned_output(mesh_ncs)
+        stitched = Dataset(
+            stitch_partitioned_output(
+                mesh_nc_paths, 'test/data/tmp/stitched.nc'
+            )
+        )
+
         xcc_stitched = stitched.variables['FlowElem_xcc'][:]
         ycc_stitched = stitched.variables['FlowElem_ycc'][:]
 
@@ -389,15 +390,16 @@ class TestMeshToAsc(unittest.TestCase):
              ]
         )
         ycc_expected = np.array(
-            [132.13, 134.5, 136.7, 138.1,
+            [132.3, 134.5, 136.7, 138.1,
              139.255, 140.25, 140.55, 141.1,
              142.2, 143.01, 144.2, 145.5,
              149.2, 150.7, 151.6, 152.2
              ]
         )
 
-        self.assertEqual(xcc_expected, xcc_stitched)
-        self.assertEqual(ycc_expected, ycc_stitched)
+        assert (xcc_expected == xcc_stitched).all()
+        assert (ycc_expected == ycc_stitched).all(), \
+            "\nexpected: {}\nstitched: {}".format(ycc_expected, ycc_stitched)
 
         taus_expected = np.array(
             [0.0, 1.0, 2.0, 3.0,
@@ -407,9 +409,9 @@ class TestMeshToAsc(unittest.TestCase):
              ]
         )
 
-        taus_stitched = stitched.variables('taus')[:]
+        taus_stitched = stitched.variables['taus'][:]
 
-        self.assertEqual(taus_expected, taus_stitched)
+        assert (taus_expected == taus_stitched).all()
 
 
 def _set_up_for_hs_test(basedir):

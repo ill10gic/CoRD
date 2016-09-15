@@ -8,10 +8,11 @@ Date:
     9 May 2016
 """
 import copy
+import re
 import six
 
 from netCDF4 import Dataset
-from numpy import (array, concatenate, fromstring, meshgrid,
+from numpy import (append, array, concatenate, fromstring, meshgrid,
                    reshape, flipud, isnan)
 from scipy.interpolate import griddata
 from pandas import read_table, read_excel, Series
@@ -186,9 +187,74 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     return ESRIAsc(data=Series(data), **header_dict)
 
 
-def stitch_partitioned_output(mesh_ncs):
+def stitch_partitioned_output(mesh_nc_paths,
+                              output_dataset_path,
+                              clobber=True):
+    """
+    Stitch together the outputs from a parallelized DFLOW run
+    into a single netCDF dataset.
 
-    return mesh_ncs[0]
+    Arguments:
+        mesh_nc_paths (list): list of paths to the partitioned output netCDFs
+        output_dataset_path (str): path where stitched output should be saved
+        clobber (bool): whether or not to overwrite existing; handled by
+            Dataset constructor
+
+    Returns:
+        (netCDF4.Dataset) Stitched-together dataset built from the DFLOW output
+    """
+    print mesh_nc_paths
+    mesh_ncs = [
+        (
+            int(re.search(r'(\d{4})', p).groups()[0]),
+            Dataset(p, 'r')
+        )
+        for p in mesh_nc_paths
+    ]
+
+    # first need to extract triples of
+    # FlowElem_{x,y}cc where the index of the partitioned output is
+    # equal to the FlowElemDomain of the flow element; then after iterating
+    # through all the possible
+    stitch_xcc = array([])
+    stitch_ycc = array([])
+    stitch_taus = array([])
+
+    for partition_idx, dataset in mesh_ncs:
+        v = dataset.variables
+
+        domain_vec = v['FlowElemDomain'][:]
+
+        sel_cond = domain_vec == partition_idx
+
+        xcc_vec = v['FlowElem_xcc'][sel_cond]
+        ycc_vec = v['FlowElem_ycc'][sel_cond]
+        tau_vec = v['taus'][sel_cond]
+
+        stitch_xcc = append(stitch_xcc, xcc_vec)
+        stitch_ycc = append(stitch_ycc, ycc_vec)
+        stitch_taus = append(stitch_taus, tau_vec)
+
+    stitched = Dataset(output_dataset_path, 'w', clobber=clobber)
+
+    n_flow_elem = len(stitch_xcc)
+    if n_flow_elem != len(stitch_ycc) or n_flow_elem != len(stitch_taus):
+        raise RuntimeError('xcc, ycc, and taus are not of same length')
+
+    stitched.createDimension('nFlowElem', n_flow_elem)
+
+    stitched.createVariable('FlowElem_xcc', float, ('nFlowElem',))
+    stitched.createVariable('FlowElem_ycc', float, ('nFlowElem',))
+    stitched.createVariable('taus', float, ('nFlowElem',))
+
+    v = stitched.variables
+    v['FlowElem_xcc'][:] = stitch_xcc
+    v['FlowElem_ycc'][:] = stitch_ycc
+    v['taus'][:] = stitch_taus
+
+    stitched.close()
+
+    return output_dataset_path
 
 
 def veg2n(veg_map, ripcas_required_data, streambed_roughness):
