@@ -325,12 +325,14 @@ class TestMeshToAsc(unittest.TestCase):
 
         # on inspection found all the relevant vars are not also ds
         for idx, name in enumerate(self.nc_names):
-            print name
+
             nc = Dataset(name, 'w')
-            nc.createVariable('FlowElem_xcc', float)
-            nc.createVariable('FlowElem_ycc', float)
-            nc.createVariable('FlowElemDomain', float)
-            nc.createVariable('taus', float)
+
+            nc.createDimension('nFlowElem', 8)
+            nc.createVariable('FlowElem_xcc', float, ('nFlowElem',))
+            nc.createVariable('FlowElem_ycc', float, ('nFlowElem',))
+            nc.createVariable('FlowElemDomain', float, ('nFlowElem',))
+            nc.createVariable('taus', float, ('nFlowElem',))
 
             vars_ = nc.variables
             # TODO fill in variables
@@ -342,24 +344,21 @@ class TestMeshToAsc(unittest.TestCase):
                     [132.3, 134.5, 136.7, 138.1, 8.3, 133.3, 12.1, 111.0]
 
             elif idx == 1:
-                vars_['FlowElemDomain'][:] =\
-                    numpy.ndarray([0, 1, 1, 1, 1, 2, 2, 3])
+                vars_['FlowElemDomain'][:] = [0, 1, 1, 1, 1, 2, 2, 3]
                 vars_['FlowElem_xcc'][:] =\
                     [32.3, 39.255, 40.25, 40.55, 41.1, 123.3, 4.1, 5.0]
                 vars_['FlowElem_ycc'][:] =\
                     [232.3, 139.255, 140.25, 140.55, 141.1, 138.1, 8.3, 133.3]
 
             elif idx == 2:
-                vars_['FlowElemDomain'][:] =\
-                    numpy.ndarray([0, 1, 2, 2, 2, 2, 3, 3])
+                vars_['FlowElemDomain'][:] = [0, 1, 2, 2, 2, 2, 3, 3]
                 vars_['FlowElem_xcc'][:] =\
                     [32.3, 29.255, 42.2, 43.01, 44.2, 45.5, 14.1, 52.1]
                 vars_['FlowElem_ycc'][:] =\
                     [232.3, 139.255, 142.2, 143.01, 144.2, 145.5, 8.3, 133.3]
 
             elif idx == 3:
-                vars_['FlowElemDomain'][:] =\
-                    numpy.ndarray([1, 1, 1, 2, 3, 3, 3, 3])
+                vars_['FlowElemDomain'][:] = [1, 1, 1, 2, 3, 3, 3, 3]
                 vars_['FlowElem_xcc'][:] =\
                     [32.3, 29.255, 42.2, 43.01, 49.2, 50.7, 51.6, 52.2]
                 vars_['FlowElem_ycc'][:] =\
@@ -369,23 +368,27 @@ class TestMeshToAsc(unittest.TestCase):
 
     def test_meshes_to_asc(self):
 
-        mesh_ncs = glob.glob(
-            os.path.join('test', 'data', 'tmp', 'meshes-to-asc', 'inputs', '*')
+        mesh_nc_paths = glob.glob(
+            os.path.join('test', 'data', 'tmp', '*')
         )
+
+        mesh_ncs = [Dataset(p) for p in mesh_nc_paths]
+
+        print mesh_ncs[0]
 
         # should return a netCDF
         stitched = stitch_partitioned_output(mesh_ncs)
-        xcc_stitched = stitched.variables('FlowElem_xcc')[:]
-        ycc_stitched = stitched.variables('FlowElem_ycc')[:]
+        xcc_stitched = stitched.variables['FlowElem_xcc'][:]
+        ycc_stitched = stitched.variables['FlowElem_ycc'][:]
 
-        xcc_expected = np.ndarray(
+        xcc_expected = np.array(
             [32.3, 34.5, 36.7, 38.1,
              39.255, 40.25, 40.55, 41.1,
              42.2, 43.01, 44.2, 45.5,
              49.2, 50.7, 51.6, 52.2
              ]
         )
-        ycc_expected = np.ndarray(
+        ycc_expected = np.array(
             [132.13, 134.5, 136.7, 138.1,
              139.255, 140.25, 140.55, 141.1,
              142.2, 143.01, 144.2, 145.5,
@@ -396,7 +399,7 @@ class TestMeshToAsc(unittest.TestCase):
         self.assertEqual(xcc_expected, xcc_stitched)
         self.assertEqual(ycc_expected, ycc_stitched)
 
-        taus_expected = np.ndarray(
+        taus_expected = np.array(
             [0.0, 1.0, 2.0, 3.0,
              2.0, 4.0, 6.0, 8.0,
              6.0, 9.0, 12.0, 15.0,
