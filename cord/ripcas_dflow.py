@@ -8,6 +8,7 @@ Date:
     9 May 2016
 """
 import copy
+import numpy as np
 import re
 import six
 
@@ -163,7 +164,12 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     # the mesh locations are the x and y centers of the Flow (Finite) Elements
     mesh_x = dflow_ds.variables['FlowElem_xcc'][:]
     mesh_y = dflow_ds.variables['FlowElem_ycc'][:]
+
+    # when we use stitch_partitioned_input
     mesh_shear = dflow_ds.variables['taus'][-1]  # take the last timestep
+    # may be only 1D vector (stitched partitions)
+    if isinstance(mesh_shear, np.float64):
+        mesh_shear = dflow_ds.variables['taus'][:]
 
     cellsize = header_dict['cellsize']
     x = array([header_dict['xllcorner'] + (i*cellsize)
@@ -203,7 +209,6 @@ def stitch_partitioned_output(mesh_nc_paths,
     Returns:
         (netCDF4.Dataset) Stitched-together dataset built from the DFLOW output
     """
-    print mesh_nc_paths
     mesh_ncs = [
         (
             int(re.search(r'(\d{4})', p).groups()[0]),

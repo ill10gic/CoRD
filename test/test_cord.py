@@ -366,6 +366,10 @@ class TestMeshToAsc(unittest.TestCase):
 
             vars_['taus'][:] = np.arange(8) * (idx + 1)
 
+    def tearDown(self):
+
+        os.remove(os.path.join('test', 'data', 'tmp', 'stitched.nc'))
+
     def test_meshes_to_asc(self):
 
         mesh_nc_paths = glob.glob(
