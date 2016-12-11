@@ -5,11 +5,11 @@
 
 [General]
 
-DATA_DIR =  # must create the directory before running 
+DATA_DIR = debug_data_dir # must create the directory before running 
 INITIAL_VEGETATION_MAP = 
 VEGZONE_MAP = 
-VEG_ROUGHNESS_SHEARRES_LOOKUP = 
-PEAK_FLOWS_FILE =
+VEG_ROUGHNESS_SHEARRES_LOOKUP = veg_roughness_shearres_nByHalf.xlsx
+PEAK_FLOWS_FILE = fake_flows.txt
 GEOMETRY_FILE = 
 
 STREAMBED_ROUGHNESS = 0.035  # in-channel only
