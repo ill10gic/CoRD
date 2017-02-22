@@ -366,11 +366,18 @@ class TestMeshToAsc(unittest.TestCase):
 
             vars_['taus'][:] = np.arange(8) * (idx + 1)
 
+            # seemed like this was unnecessary, but it's better practice
+            nc.sync()
+            nc.close()
+
     def tearDown(self):
 
-        os.remove(os.path.join('test', 'data', 'tmp', 'stitched.nc'))
+        shutil.rmtree(os.path.join('test', 'data', 'tmp'))
 
     def test_meshes_to_asc(self):
+        '''
+        NetCDF mesh files should get stitched together properly
+        '''
 
         mesh_nc_paths = glob.glob(
             os.path.join('test', 'data', 'tmp', '*')

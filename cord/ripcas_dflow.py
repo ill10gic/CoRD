@@ -234,7 +234,9 @@ def stitch_partitioned_output(mesh_nc_paths,
 
         xcc_vec = v['FlowElem_xcc'][sel_cond]
         ycc_vec = v['FlowElem_ycc'][sel_cond]
-        tau_vec = v['taus'][sel_cond]
+        # import ipdb
+        # ipdb.set_trace()
+        tau_vec = v['taus'][-1][sel_cond]
 
         stitch_xcc = append(stitch_xcc, xcc_vec)
         stitch_ycc = append(stitch_ycc, ycc_vec)

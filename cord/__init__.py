@@ -1,2 +1,2 @@
-from ripcas_dflow import *
-from modelrun import ModelRun
+from .ripcas_dflow import *
+from .modelrun import ModelRun
