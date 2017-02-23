@@ -12,16 +12,22 @@ Author:
 Date:
     19 April 2016
 """
+from __future__ import print_function
+
 import numpy as np
 import os
 import shutil
 import subprocess
 import time
 
+
 from collections import namedtuple
 from scipy.optimize import minimize_scalar
 
-from ripcas_dflow import ESRIAsc, Pol, ripcas, shear_mesh_to_asc, veg2n
+try:
+    from ripcas_dflow import ESRIAsc, Pol, ripcas, shear_mesh_to_asc, veg2n
+except ImportError:
+    from .ripcas_dflow import ESRIAsc, Pol, ripcas, shear_mesh_to_asc, veg2n
 
 
 class ModelRun(object):
@@ -203,7 +209,7 @@ class ModelRun(object):
 
         if dflow_run_fun is None:
 
-            print '\n*****\nDry Run of DFLOW\n*****\n'
+            print('\n*****\nDry Run of DFLOW\n*****\n')
 
             os.chdir(bkdir)
             example_shear_path = 'jemez_r02_map.nc'
@@ -212,8 +218,8 @@ class ModelRun(object):
                 shutil.copyfile(example_shear_path, self.dflow_shear_output)
 
             else:
-                print 'Get you a copy of a DFLOW output, yo! ' +\
-                      'Can\'t run RipCAS without it!'
+                print('Get you a copy of a DFLOW output, yo! ' +
+                      'Can\'t run RipCAS without it!')
 
                 with open('not_actually_output.nc', 'w') as f:
                     f.write('A FAKE NETCDF!!!')
@@ -623,51 +629,6 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
         mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
 
     log_f.close()
-
-
-if __name__ == '__main__':
-
-    import sys
-
-    help_msg = '''
-modelrun.py
-
-Author: Matthew Turner
-
-Usage:
-    python ripcas_dflow/modelrun.py data_dir initial_vegetation vegzone_map veg_roughness_shearres_lookup\
-            peak_flows_file geometry_file streambed_roughness streambed_slope
-
-    data_dir: directory to hold each time step of the model run
-    initial_vegetation: .asc file with initial vegetation map
-    vegzone_map: .asc file with vegetation zone information
-    veg_roughness_shearres_lookup: .xlsx file with veg type-to-n and shear resistance-per-veg type information
-    peak_flows_file: file with a column of peak flood flow in cubic meters per second
-    geometry_file: xyz file representing geometry of downstream cross section for boundary conditions calculation
-    streambed_roughness: floating point number for the roughness value of the streambed
-    streambed_slope: floating point number for the slope of the stream geography
-'''
-    if sys.argv[1] == '-h' or sys.argv[1] == '--help':
-        print help_msg
-        sys.exit(0)
-
-    if len(sys.argv) != 9:
-        print help_msg
-        sys.exit(1)
-
-    data_dir = sys.argv[1]
-    initial_vegetation_map = sys.argv[2]
-    vegzone_map = sys.argv[3]
-    veg_roughness_shearres_lookup = sys.argv[4]
-    peak_flows_file = sys.argv[5]
-    geometry_file = sys.argv[6]
-    streambed_roughness = float(sys.argv[7])
-    streambed_slope = float(sys.argv[8])
-
-    modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
-                     veg_roughness_shearres_lookup, peak_flows_file, geometry_file,
-                     streambed_roughness, streambed_slope, dflow_run_fun=None,
-                     log_f=None)
 
 
 def _join_data_dir(f):
