@@ -236,7 +236,13 @@ def stitch_partitioned_output(mesh_nc_paths,
         ycc_vec = v['FlowElem_ycc'][sel_cond]
         # import ipdb
         # ipdb.set_trace()
-        tau_vec = v['taus'][-1][sel_cond]
+        try:
+            tau_vec = v['taus'][-1][sel_cond]
+
+        # XXX allow for either a matrix or vector of taus; note it's for tests
+        # and a bad hack that should probably be changed XXX
+        except IndexError:
+            tau_vec = v['taus'][sel_cond]
 
         stitch_xcc = append(stitch_xcc, xcc_vec)
         stitch_ycc = append(stitch_ycc, ycc_vec)
@@ -338,7 +344,7 @@ class ESRIAsc:
             self.nrows = int(getnextval(f))
             self.xllcorner = float(getnextval(f))
             self.yllcorner = float(getnextval(f))
-            self.cellsize = int(getnextval(f))
+            self.cellsize = float(getnextval(f))
             self.NODATA_value = float(getnextval(f))
 
             # should not be necessary for well-formed ESRI files, but

@@ -123,7 +123,8 @@ class TestModelRun(unittest.TestCase):
 
     def tearDown(self):
 
-        shutil.rmtree(self.tmpdir)
+        pass
+        # shutil.rmtree(self.tmpdir)
 
     def test_boundary_calculation(self):
         """
@@ -203,51 +204,51 @@ class TestCLI(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @responses.activate
-    def test_push_hs(self):
+    # @responses.activate
+    # def test_push_hs(self):
 
-        hs_basedir = 'fakedir'
-        _set_up_for_hs_test(hs_basedir)
+    #     hs_basedir = 'fakedir'
+    #     _set_up_for_hs_test(hs_basedir)
 
-        base_url = 'https://www.hydroshare.org/hsapi/'
-        rid = 'X5A67'
+    #     base_url = 'https://www.hydroshare.org/hsapi/'
+    #     rid = 'X5A67'
 
-        # if all mock rsps are not used w/in context it raises AssertError
-        with responses.RequestsMock() as rsps:
+    #     # if all mock rsps are not used w/in context it raises AssertError
+    #     with responses.RequestsMock() as rsps:
 
-            # set up response objects
-            # response to create new resource
-            rsps.add(responses.POST, base_url + 'resource/',
-                     json={'resource_id': rid},
-                     status=201)
+    #         # set up response objects
+    #         # response to create new resource
+    #         rsps.add(responses.POST, base_url + 'resource/',
+    #                  json={'resource_id': rid},
+    #                  status=201)
 
-            # before resource created, client checks types; auth req'd
-            rsps.add(responses.GET, base_url + 'resourceTypes/',
-                     json=[{'resource_type': 'GenericResource'}],
-                     status=200)
+    #         # before resource created, client checks types; auth req'd
+    #         rsps.add(responses.GET, base_url + 'resourceTypes/',
+    #                  json=[{'resource_type': 'GenericResource'}],
+    #                  status=200)
 
-            # response to adding vegetation, inputs, and  file
-            file_add_url = base_url + 'resource/' + rid + '/files/'
+    #         # response to adding vegetation, inputs, and  file
+    #         file_add_url = base_url + 'resource/' + rid + '/files/'
 
-            for i in range(3):
-                rsps.add(responses.POST, file_add_url,
-                         json={'resource_id': rid},
-                         status=201)
+    #         for i in range(3):
+    #             rsps.add(responses.POST, file_add_url,
+    #                      json={'resource_id': rid},
+    #                      status=201)
 
-            # prepare cli run
-            runner = CliRunner()
+    #         # prepare cli run
+    #         runner = CliRunner()
 
-            result = runner.invoke(
-                cli, ['post_hs', '--username', 'fake', '--password', 'fake',
-                      '--modelrun-dir', hs_basedir, '--resource-title',
-                      'fake resource that will never get to HydroShare']
-            )
-            assert not result.exception, result.exception
-            assert result.exit_code == 0
+    #         result = runner.invoke(
+    #             cli, ['post_hs', '--username', 'fake', '--password', 'fake',
+    #                   '--modelrun-dir', hs_basedir, '--resource-title',
+    #                   'fake resource that will never get to HydroShare']
+    #         )
+    #         assert not result.exception, result.exception
+    #         assert result.exit_code == 0
 
-            assert len(rsps.calls) == 5
+    #         assert len(rsps.calls) == 5
 
-        shutil.rmtree(hs_basedir)
+    #     shutil.rmtree(hs_basedir)
 
     def test_from_config(self):
 
@@ -372,7 +373,8 @@ class TestMeshToAsc(unittest.TestCase):
 
     def tearDown(self):
 
-        shutil.rmtree(os.path.join('test', 'data', 'tmp'))
+        pass
+        # shutil.rmtree(os.path.join('test', 'data', 'tmp'))
 
     def test_meshes_to_asc(self):
         '''
