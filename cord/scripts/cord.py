@@ -90,6 +90,37 @@ def from_config(ctx, config_file):
 
 
 @cli.command()
+@click.argument('config_file', type=CPE())
+@click.argument('dflow_initial_output_dir', type=CPE())
+@click.pass_context
+def from_config_cluster_acceptance(ctx, config_file):
+    """
+    Run CoRD with params from <config_file>; use outputs from existing partitioned run
+    """
+
+    cfg = load_args_from_config(config_file)
+
+    ctxlog = ctx.obj['LOGFILE']
+    logfile = ctxlog if ctxlog is not None else cfg['log_f']
+
+    # long name, amazing results
+    cluster_acceptance_dflow_out_ripcas_dflow(
+        cfg['data_dir'],
+        cfg['initial_vegetation_map'],
+        cfg['vegzone_map'],
+        cfg['veg_roughness_shearres_lookup'],
+        cfg['peak_flows_file'],
+        cfg['geometry_file'],
+        cfg['streambed_roughness'],
+        cfg['streambed_floodplain_roughness'],
+        cfg['streambed_slope'],
+        cfg['dflow_run_fun'],
+        logfile,
+        ctx.obj['DEBUG']
+    )
+
+
+@cli.command()
 @click.option('--username', prompt=True)
 @click.option('--password', prompt=True)
 @click.option('--modelrun-dir', prompt=True)
@@ -164,6 +195,7 @@ def post_hs(ctx, username, password, modelrun_dir, include_shear_nc,
     hs.addResourceFile(
         r_id, os.path.join(export_dir, 'shear.zip')
     )
+
 
 
 def load_args_from_config(config_file):
@@ -241,3 +273,6 @@ def load_args_from_config(config_file):
     ret.update(hs)
 
     return ret
+
+
+

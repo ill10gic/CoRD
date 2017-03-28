@@ -5,7 +5,6 @@ to/from the virtual watershed.
 import glob
 import numpy
 import os
-import responses
 import shutil
 import traceback
 import unittest
@@ -321,8 +320,11 @@ class TestMeshToAsc(unittest.TestCase):
             )
             for i in range(4)
         ]
+        tmpdir = os.path.join('test', 'data', 'tmp')
+        if os.path.exists(tmpdir):
+            shutil.rmtree(tmpdir)
 
-        os.mkdir('test/data/tmp')
+        os.mkdir(tmpdir)
 
         # on inspection found all the relevant vars are not also ds
         for idx, name in enumerate(self.nc_names):
@@ -373,8 +375,7 @@ class TestMeshToAsc(unittest.TestCase):
 
     def tearDown(self):
 
-        pass
-        # shutil.rmtree(os.path.join('test', 'data', 'tmp'))
+        shutil.rmtree(os.path.join('test', 'data', 'tmp'))
 
     def test_meshes_to_asc(self):
         '''
