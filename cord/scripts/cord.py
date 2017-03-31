@@ -6,7 +6,7 @@ import glob
 import os
 import shutil
 
-from ..modelrun import modelrun_series
+from ..modelrun import modelrun_series, ModelRun
 
 
 @click.group()
@@ -117,6 +117,33 @@ def from_config_cluster_acceptance(ctx, config_file):
         cfg['dflow_run_fun'],
         logfile,
         ctx.obj['DEBUG']
+    )
+
+
+def cluster_acceptance_dflow_out_ripcas_dflow(
+    data_dir, initial_vegetation_map, vegzone_map,
+    veg_roughness_shearres_lookup, peak_flows_file,
+    geometry_file, streambed_roughness,
+    streambed_floodplain_roughness, streambed_slope,
+    dflow_run_fun=None, log_f=None, debug=False):
+
+    # copy files from existing directory, assumed for now to be my home dir
+    first_data_path = os.path.join(
+        os.path.expanduser('~'), 'cord-cluster-test'
+    )
+
+    # set up initial modelrun to indicate it's already run DFLOW
+    mr = ModelRun()
+    mr.dflow_has_run = True
+    mr.dflow_run_directory = os.path.join(data_dir, 'dflow-fake')
+
+    mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
+                  'ripcas-fake-dir')
+
+    next_mr = ModelRun()
+
+    next_mr.calculate_bc(
+        15, geometry_file, streambed_floodplain_roughness, streambed_slope
     )
 
 

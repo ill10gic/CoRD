@@ -564,6 +564,7 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
         if flow_idx == 0:
             veg_file = initial_vegetation_map
         else:
+            # take ripcas outputs as dflow inputs from previous timestep
             veg_file = os.path.join(
                 data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
             )
@@ -625,6 +626,15 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
             p = _join_data_dir('shear_out.asc')
             mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
                           ripcas_dir, shear_asc=ESRIAsc(p))
+
+        else:
+            # if no explicit shear_asc is given, the method accesses
+            # the dflow_shear_output attribute. XXX TODO this method will
+            # need to be updated to build a shear_asc by stitching together
+            # the partitioned files using stitch_partitioned_output
+            # in cord/ripcas_dflow.py
+            mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
+                          ripcas_dir)
 
         mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
 
