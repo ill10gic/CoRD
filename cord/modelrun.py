@@ -499,20 +499,21 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
         returns:
             None
     '''
-
+    # If standard run on CARC
     if dflow_run_fun is None:
 
         def dflow_fun():
 
             import subprocess
-
+            # Send DFLOW run to the queue
             return subprocess.Popen(
                 'qsub dflow_mpi.pbs', shell=True,
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
 
+    # Create log file is none exists
     if log_f is None:
-
+        # get rid of / at begining of file path
         first_char = data_dir[0]
         root_log_f = first_char if first_char != '/' else ''
         root_log_f += data_dir[1:].replace('/', '-')
@@ -521,17 +522,21 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
     else:
         log_f = open(log_f, 'w')
-
+        
+    # create a list that contains the peak flows from input file
     with open(peak_flows_file, 'r') as f:
         l0 = f.readline().strip()
         assert l0 == 'Peak.Flood', '{} not Peak.Flood'.format(l0)
         peak_flows = [float(l.strip()) for l in f.readlines()]
-
+    
+    # create a directory for global inputs
     inputs_dir = os.path.join(data_dir, 'inputs')
+    # remove inputs directory if it already existed
     if os.path.isdir(inputs_dir):
         shutil.rmtree(inputs_dir)
+    # create inputs directory
     os.mkdir(inputs_dir)
-
+    # brin all input files into the input directory
     shutil.copy(initial_vegetation_map, inputs_dir)
     shutil.copy(vegzone_map, inputs_dir)
     shutil.copy(veg_roughness_shearres_lookup, inputs_dir)
@@ -540,48 +545,57 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
     roughness_slope_path = os.path.join(inputs_dir, 'roughness_slope.txt')
 
+    # create a text file with info on both streambed roughness and slope
     with open(roughness_slope_path, 'w') as f:
         f.write('roughness\tslope\n')
         f.write('%s\t%s\n' % (streambed_roughness, streambed_slope))
 
+    # Iterate through all annual peak flows
     for flow_idx, flow in enumerate(peak_flows):
-
+        # create a ModelRun object
         mr = ModelRun()
-
+        # Run the boundary condition calculation method; 
+        # produces upstream flow file and downstream stage file for DFLOW to use
         mr.calculate_bc(
             flow, geometry_file,
             streambed_floodplain_roughness, streambed_slope
         )
-
+        
+        # Enter information into log file
         mr_log(
             log_f, 'Boundary conditions for flow index {0} finished\n'.format(
                 flow_idx
             )
         )
 
+        # Create new directory for this annual flow iteration of DFLOW
         dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
 
+        # Get veg map
         if flow_idx == 0:
             veg_file = initial_vegetation_map
         else:
-            # take ripcas outputs as dflow inputs from previous timestep
+            # Take RipCAS outputs as DFLOW inputs from previous timestep
             veg_file = os.path.join(
                 data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
             )
 
+        # Debug is for running on a local machine
         if debug:
             mr.run_dflow(dflow_dir, veg_file,
                          veg_roughness_shearres_lookup, streambed_roughness)
             job_id = 'debug'
-
+        
+        # If running on CARC
         else:
+            # Send DFLOW run to CARC
             p_ref = mr.run_dflow(dflow_dir, veg_file,
                                  veg_roughness_shearres_lookup,
                                  streambed_roughness,
                                  dflow_run_fun=dflow_fun)
 
             job_id = p_ref.communicate()[0].split('.')[0]
-
+        # Enter run start in log file
         mr_log(log_f, 'Job ID {0} submitted for DFLOW run {1}\n'.format(
                 job_id, flow_idx
             )
@@ -620,8 +634,10 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
             )
         )
 
+        # Creat a directory for this annual iteration of RipCAS
         ripcas_dir = os.path.join(data_dir, 'ripcas-' + str(flow_idx))
 
+        # Debug is for running on a local machine
         if debug:
             p = _join_data_dir('shear_out.asc')
             mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
@@ -635,7 +651,7 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
             # in cord/ripcas_dflow.py
             mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
                           ripcas_dir)
-
+        # Note end of RipCAS in log file
         mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
 
     log_f.close()
