@@ -46,15 +46,18 @@ class ModelRun(object):
         self.vegetation_ascii = None
         self.ripcas_has_run = False
         self.ripcas_directory = None
-
+        
+        # has DFLOW been run yet?
         self.dflow_has_run = False
         self.dflow_run_directory = None
         self.dflow_shear_output = None
 
+        # generate boundry condition objects
         self.upstream_bc = BoundaryCondition()
         self.downstream_bc = BoundaryCondition()
         self.bc_solution_info = BoundarySolutionInfo()
 
+    
     def calculate_bc(self, target_streamflow,
                      dbc_geometry_file, streambed_roughness, slope):
         """
