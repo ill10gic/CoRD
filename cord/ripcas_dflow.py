@@ -83,6 +83,7 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
         (ESRIAsc) vegetation map updated with new values corresponding to
             succession rules
     """
+    # Check that veg, shear, and zone maps are the right type (either string or ESRIAsc)
     if isinstance(vegetation_map, six.string_types):
         vegetation_map = ESRIAsc(vegetation_map)
     elif not isinstance(vegetation_map, ESRIAsc):
@@ -99,6 +100,7 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
         raise TypeError('zone_map must be type str of ESRIAsc, not ' +
                         str(type(zone_map)))
 
+    # Check that all the parameters from Excel are imported correctly into pandas data frame
     if isinstance(ripcas_required_data, six.string_types):
         cas_df = read_excel(ripcas_required_data)
 
@@ -113,20 +115,24 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
     else:
         raise TypeError('shear_resistance_dict must be type str')
 
-    # init the vegetation map that will be returned
+    # initialize the vegetation map that will be returned
     ret_veg_map = copy.deepcopy(vegetation_map)
 
+    # run through each cell of the ESRI ascii file
     for idx in range(len(shear_map.data)):
         # determine whether or not the vegetation should be reset to age zero
         veg_val = int(vegetation_map.data[idx])
         if veg_val != 0:
 
+            # Make sure shear map and veg map at this cell have data
+            # To Do: Enable vegetation to age, even if shear at that cell is nodata
             is_not_nodata = (
                 shear_map.data[idx] != shear_map.NODATA_value and
                 vegetation_map.data[idx] != vegetation_map.NODATA_value and
                 vegetation_map.data[idx] > 0
             )
 
+            # set reset to true if shear is over threshold
             veg_needs_reset = (
                 is_not_nodata and
                 shear_map.data[idx] > shear_resistance_dict[veg_val]
@@ -159,18 +165,21 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
         (ESRIAsc) representation of gridded representation of the mesh shear
             stress data output from dflow
     """
+    # initialize and read dflow netcdf dataset
     dflow_ds = Dataset(shear_nc_path, 'r')
 
     # the mesh locations are the x and y centers of the Flow (Finite) Elements
     mesh_x = dflow_ds.variables['FlowElem_xcc'][:]
     mesh_y = dflow_ds.variables['FlowElem_ycc'][:]
 
+    # Shear varies with time, so select the last time step shear to assign to the mesh elements
     # when we use stitch_partitioned_input
     mesh_shear = dflow_ds.variables['taus'][-1]  # take the last timestep
     # may be only 1D vector (stitched partitions)
     if isinstance(mesh_shear, np.float64):
         mesh_shear = dflow_ds.variables['taus'][:]
 
+    # create the ascii raster info that the mesh will be transformed onto
     cellsize = header_dict['cellsize']
     x = array([header_dict['xllcorner'] + (i*cellsize)
                for i in range(header_dict['ncols'])])
@@ -178,6 +187,7 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     y = array([header_dict['yllcorner'] + (i*cellsize)
                for i in range(header_dict['nrows'])])
 
+    # make full grid from x and y 1-D arrays
     grid_x, grid_y = meshgrid(x, y)
 
     # use linear interp so we don't have to install natgrid
@@ -186,10 +196,13 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     # not sure why, but this makes it align with the original vegetation map
     asc_mat = flipud(asc_mat)
 
+    # reshape the 2-D array into a 1-D array
     data = reshape(asc_mat, (header_dict['ncols'] * header_dict['nrows']))
 
+    # in the places where data is not a number, give it the nodata value (e.g., -9999)
     data[isnan(data)] = int(header_dict['NODATA_value'])
 
+    # convert into an ESRIAsc class object and return it
     return ESRIAsc(data=Series(data), **header_dict)
 
 
@@ -209,6 +222,8 @@ def stitch_partitioned_output(mesh_nc_paths,
     Returns:
         (netCDF4.Dataset) Stitched-together dataset built from the DFLOW output
     """
+    # make a list of tuples of the partition ID number and netcdf map output files for every netcdf path 
+    # (For ID's, look for the 4-digit number in the name of the file)
     mesh_ncs = [
         (
             int(re.search(r'(\d{4})', p).groups()[0]),
@@ -221,21 +236,26 @@ def stitch_partitioned_output(mesh_nc_paths,
     # FlowElem_{x,y}cc where the index of the partitioned output is
     # equal to the FlowElemDomain of the flow element; then after iterating
     # through all the possible
+    # creat empty arrays
     stitch_xcc = array([])
     stitch_ycc = array([])
     stitch_taus = array([])
 
+    # Loop through every partition; bring in the ID and the dataset
     for partition_idx, dataset in mesh_ncs:
         v = dataset.variables
 
+        # FlowElemDomain contains the index number for the partition, but also neighboring partition indices
         domain_vec = v['FlowElemDomain'][:]
 
+        # create boolian array, which is true where the partition index falls in the list of indices
         sel_cond = domain_vec == partition_idx
 
+        # get flow element x and ys from our particular partition
         xcc_vec = v['FlowElem_xcc'][sel_cond]
         ycc_vec = v['FlowElem_ycc'][sel_cond]
-        # import ipdb
-        # ipdb.set_trace()
+
+        # get shear from our particular partition, in the last time step
         try:
             tau_vec = v['taus'][-1][sel_cond]
 
@@ -244,6 +264,7 @@ def stitch_partitioned_output(mesh_nc_paths,
         except IndexError:
             tau_vec = v['taus'][sel_cond]
 
+        # stitch this partition onto all partions that have been stitched so far
         stitch_xcc = append(stitch_xcc, xcc_vec)
         stitch_ycc = append(stitch_ycc, ycc_vec)
         stitch_taus = append(stitch_taus, tau_vec)
