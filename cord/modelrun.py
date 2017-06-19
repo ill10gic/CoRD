@@ -46,7 +46,7 @@ class ModelRun(object):
         self.vegetation_ascii = None
         self.ripcas_has_run = False
         self.ripcas_directory = None
-        
+
         # has DFLOW been run yet?
         self.dflow_has_run = False
         self.dflow_run_directory = None
@@ -57,7 +57,7 @@ class ModelRun(object):
         self.downstream_bc = BoundaryCondition()
         self.bc_solution_info = BoundarySolutionInfo()
 
-    
+
     def calculate_bc(self, target_streamflow,
                      dbc_geometry_file, streambed_roughness, slope):
         """
@@ -105,10 +105,9 @@ class ModelRun(object):
         Arguments:
             dflow_run_directory (str): directory where DFLOW files should be
                 put and where the dflow_run_fun will be run from
-            vegetation_map (str): path to the input vegetation.pol file. This
-                function assumes this has already been generated in the proper
-                format b/c this seems like the best separation of
-                responsibilities.
+            vegetation_map (str): path to the input vegetation.asc file.
+                Converted to n.pol.
+            veg_roughness_shearres_lookup (str):
             clobber (bool): whether or not to overwrite dflow_run_directory if
                 it exists
             pbs_script_name (str): name of .pbs script w/o directory
@@ -141,7 +140,18 @@ class ModelRun(object):
 
         self.dflow_run_directory = dflow_run_directory
 
-        os.mkdir(dflow_run_directory)
+        curdir = os.path.dirname(__file__)
+
+        path_to_dflow_inputs = os.path.join(
+            curdir, 'data', 'dflow-partition'
+        )
+
+        shutil.copytree(path_to_dflow_inputs, dflow_run_directory)
+
+        self.dflow_shear_output =\
+            os.path.join(dflow_run_directory,
+                         'DFM_OUTPUT_base',
+                         'base_map.nc')
 
         # write boundary conditions to file
         bc_up_path = os.path.join(dflow_run_directory,
@@ -155,57 +165,58 @@ class ModelRun(object):
 
         self.vegetation_ascii = ESRIAsc(vegetation_map)
 
-        veg_path = os.path.join(dflow_run_directory, 'n.pol')
+        roughness_path = os.path.join(dflow_run_directory, 'n.pol')
 
+        # convert the vegetation .asc to roughness .pol, write to veg_path
+        print 'converting veg .asc to roughness .pol'
         Pol.from_ascii(
             veg2n(self.vegetation_ascii,
                   veg_roughness_shearres_lookup,
                   streambed_roughness)
-        ).write(veg_path)
+        ).write(roughness_path)
 
-        oj = os.path.join
+        # oj = os.path.join
+        # self.dflow_shear_output =\
+            # os.path.join(dflow_run_directory,
+                         # 'DFM_OUTPUT_base',
+                         # 'base_map.nc')
 
-        pbs_path = oj(dflow_run_directory, pbs_script_name)
-        mdu_path = oj(dflow_run_directory, 'base.mdu')
-        net_path = oj(dflow_run_directory, 'base_net.nc')
-        ext_path = oj(dflow_run_directory, 'base.ext')
-        brd_path = oj(dflow_run_directory, 'boundriverdown.pli')
-        bru_path = oj(dflow_run_directory, 'boundriver_up.pli')
+        # pbs_path = oj(dflow_run_directory, pbs_script_name)
+        # mdu_path = oj(dflow_run_directory, 'base.mdu')
+        # net_path = oj(dflow_run_directory, 'jem_net.nc')
+        # ext_path = oj(dflow_run_directory, 'jem.ext')
+        # brd_path = oj(dflow_run_directory, 'boundriverdown.pli')
+        # bru_path = oj(dflow_run_directory, 'boundriver_up.pli')
 
-        self.dflow_shear_output =\
-            os.path.join(dflow_run_directory,
-                         'DFM_OUTPUT_base',
-                         'base_map.nc')
+        # with open(pbs_path, 'w') as f:
+            # p = _join_data_dir(oj('dflow_inputs', 'dflow_mpi.pbs'))
+            # s = open(p, 'r').read()
+            # f.write(s)
 
-        with open(pbs_path, 'w') as f:
-            p = _join_data_dir(oj('dflow_inputs', 'dflow_mpi.pbs'))
-            s = open(p, 'r').read()
-            f.write(s)
+        # with open(mdu_path, 'w') as f:
+            # p = _join_data_dir(oj('dflow_inputs', 'base.mdu'))
+            # s = open(p, 'r').read()
+            # f.write(s)
 
-        with open(mdu_path, 'w') as f:
-            p = _join_data_dir(oj('dflow_inputs', 'base.mdu'))
-            s = open(p, 'r').read()
-            f.write(s)
+        # with open(net_path, 'w') as f:
+            # p = _join_data_dir(oj('dflow_inputs', 'base_net.nc'))
+            # s = open(p, 'r').read()
+            # f.write(s)
 
-        with open(net_path, 'w') as f:
-            p = _join_data_dir(oj('dflow_inputs', 'base_net.nc'))
-            s = open(p, 'r').read()
-            f.write(s)
+        # with open(ext_path, 'w') as f:
+            # p = _join_data_dir(oj('dflow_inputs', 'base.ext'))
+            # s = open(p, 'r').read()
+            # f.write(s)
 
-        with open(ext_path, 'w') as f:
-            p = _join_data_dir(oj('dflow_inputs', 'base.ext'))
-            s = open(p, 'r').read()
-            f.write(s)
+        # with open(brd_path, 'w') as f:
+            # p = _join_data_dir(oj('dflow_inputs', 'boundriverdown.pli'))
+            # s = open(p, 'r').read()
+            # f.write(s)
 
-        with open(brd_path, 'w') as f:
-            p = _join_data_dir(oj('dflow_inputs', 'boundriverdown.pli'))
-            s = open(p, 'r').read()
-            f.write(s)
-
-        with open(bru_path, 'w') as f:
-            p = _join_data_dir(oj('dflow_inputs', 'boundriver_up.pli'))
-            s = open(p, 'r').read()
-            f.write(s)
+        # with open(bru_path, 'w') as f:
+            # p = _join_data_dir(oj('dflow_inputs', 'boundriver_up.pli'))
+            # s = open(p, 'r').read()
+            # f.write(s)
 
         bkdir = os.getcwd()
         os.chdir(dflow_run_directory)
@@ -525,13 +536,13 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
     else:
         log_f = open(log_f, 'w')
-        
+
     # create a list that contains the peak flows from input file
     with open(peak_flows_file, 'r') as f:
         l0 = f.readline().strip()
         assert l0 == 'Peak.Flood', '{} not Peak.Flood'.format(l0)
         peak_flows = [float(l.strip()) for l in f.readlines()]
-    
+
     # create a directory for global inputs
     inputs_dir = os.path.join(data_dir, 'inputs')
     # remove inputs directory if it already existed
@@ -539,7 +550,7 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
         shutil.rmtree(inputs_dir)
     # create inputs directory
     os.mkdir(inputs_dir)
-    # brin all input files into the input directory
+    # bring all input files into the input directory
     shutil.copy(initial_vegetation_map, inputs_dir)
     shutil.copy(vegzone_map, inputs_dir)
     shutil.copy(veg_roughness_shearres_lookup, inputs_dir)
@@ -557,13 +568,13 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
     for flow_idx, flow in enumerate(peak_flows):
         # create a ModelRun object
         mr = ModelRun()
-        # Run the boundary condition calculation method; 
+        # Run the boundary condition calculation method;
         # produces upstream flow file and downstream stage file for DFLOW to use
         mr.calculate_bc(
             flow, geometry_file,
             streambed_floodplain_roughness, streambed_slope
         )
-        
+
         # Enter information into log file
         mr_log(
             log_f, 'Boundary conditions for flow index {0} finished\n'.format(
@@ -588,7 +599,7 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
             mr.run_dflow(dflow_dir, veg_file,
                          veg_roughness_shearres_lookup, streambed_roughness)
             job_id = 'debug'
-        
+
         # If running on CARC
         else:
             # Send DFLOW run to CARC

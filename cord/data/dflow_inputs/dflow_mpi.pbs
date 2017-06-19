@@ -25,10 +25,10 @@ export PROCS=`cat $PBS_NODEFILE | wc -l`
 # Change to the directory that this job was submitted from
 cd $PBS_O_WORKDIR
 
-#mpirun -np $PROCS -machinefile $PBS_NODEFILE dflowfm --nodisplay -t $PROCS --autostart $INPUT_FILE
 
 echo START TIME $(date)
 
-dflowfm --nodisplay -t $PROCS --autostart $INPUT_FILE
+mpirun -np $PROCS -machinefile $PBS_NODEFILE dflowfm --nodisplay -t $PROCS --autostart $INPUT_FILE
+# dflowfm --nodisplay -t $PROCS --autostart $INPUT_FILE
 
 echo FINISH TIME $(date)

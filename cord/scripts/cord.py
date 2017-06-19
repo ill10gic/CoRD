@@ -63,6 +63,57 @@ def generate_config(ctx, config_filename):
 
 
 @cli.command()
+#@click.argument('nmaploc', type=CPE())
+#@click.argument('peakflow', type=click.FLOAT)
+@click.pass_context
+def dflow(ctx):
+    _run_dflow()
+
+
+def _run_dflow(dflow_run_dir='/users/maturner/partition-run-dev'):
+
+    mr = ModelRun()
+
+    # copy dflow data from cord/data/dflow-partition
+    # import shutil
+
+    curdir = os.path.dirname(__file__)
+
+    path_to_dflow_inputs = os.path.join(
+        curdir, '..', 'data', 'dflow-partition'
+    )
+
+    # if os.path.exists(dflow_run_dir):
+        # shutil.rmtree(dflow_run_dir)
+
+    # shutil.copytree(path_to_dflow_inputs, dflow_run_dir)
+
+    def dflow_fun():
+
+        import subprocess
+        # Send DFLOW run to the queue
+        return subprocess.Popen(
+            'qsub dflow_mpi.pbs', shell=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+    print 'calculating boundary conditions...'
+    dbc_geometry = os.path.join(path_to_dflow_inputs, 'DBC_geometry.xyz')
+    mr.calculate_bc(15, os.path.join(dflow_run_dir, dbc_geometry),
+                    0.035, 0.001)
+
+    print 'done'
+    path_to_ripcas = os.path.join(curdir, '..', 'data', 'ripcas_inputs')
+    vegetation_map = os.path.join(path_to_ripcas, 'vegclass_2z.asc')
+    veg_roughness_lookup = os.path.join(path_to_ripcas,
+                                        'veg_roughness_shearres.xlsx')
+
+    print 'running DFLOW'
+    mr.run_dflow(dflow_run_dir, vegetation_map, veg_roughness_lookup,
+                 0.035, dflow_run_fun=dflow_fun)
+
+
+@cli.command()
 @click.argument('config_file', type=CPE())
 @click.pass_context
 def from_config(ctx, config_file):
@@ -142,8 +193,18 @@ def cluster_acceptance_dflow_out_ripcas_dflow(
 
     next_mr = ModelRun()
 
+    def dflow_fun():
+
+        import subprocess
+        # Send DFLOW run to the queue
+        return subprocess.Popen(
+            'qsub dflow_mpi.pbs', shell=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
     next_mr.calculate_bc(
-        15, geometry_file, streambed_floodplain_roughness, streambed_slope
+        15, geometry_file, streambed_floodplain_roughness, streambed_slope,
+        dflow_run_fun=dflow_fun
     )
 
 
