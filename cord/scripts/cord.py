@@ -7,6 +7,7 @@ import os
 import shutil
 
 from ..modelrun import modelrun_series, ModelRun
+from ..ripcas_dflow import ESRIAsc, stitch_partitioned_output, shear_mesh_to_asc
 
 
 @click.group()
@@ -63,8 +64,6 @@ def generate_config(ctx, config_filename):
 
 
 @cli.command()
-#@click.argument('nmaploc', type=CPE())
-#@click.argument('peakflow', type=click.FLOAT)
 @click.pass_context
 def dflow(ctx):
     _run_dflow()
@@ -111,6 +110,52 @@ def _run_dflow(dflow_run_dir='/users/maturner/partition-run-dev'):
     print 'running DFLOW'
     mr.run_dflow(dflow_run_dir, vegetation_map, veg_roughness_lookup,
                  0.035, dflow_run_fun=dflow_fun)
+
+@cli.command()
+# @click.argument('dflow_run_dir', type=CPE())
+@click.pass_context
+def ripcas(ctx):
+    _run_ripcas()
+
+
+def _run_ripcas(dflow_run_dir='/users/maturner/partition-run-dev'):
+
+    # find all relevant output files
+    from glob import glob
+    g = glob(os.path.join(dflow_run_dir, 'DFM_OUTPUT_base', 'base*map.nc'))
+    print(g)
+
+    # stitch partitioned outputs
+    dflow_shear_output = '/users/maturner/ripcas-w-partition/stitched.nc'
+    stitched = stitch_partitioned_output(
+        g, dflow_shear_output
+    )
+
+    mr = ModelRun()
+    mr.dflow_has_run = True
+    mr.dflow_run_directory = dflow_run_dir
+
+    # convert stitched .nc to .asc
+    curdir = os.path.dirname(__file__)
+
+    path_to_ripcas = os.path.join(curdir, '..', 'data', 'ripcas_inputs')
+    veg_ascii_path = os.path.join(path_to_ripcas, 'vegclass_2z.asc')
+
+    mr.vegetation_ascii = veg_ascii_path
+
+    veg_asc = ESRIAsc(mr.vegetation_ascii)
+
+    shear_asc = shear_mesh_to_asc(dflow_shear_output, veg_asc.header_dict())
+
+    zone_map_path = os.path.join(path_to_ripcas, 'zonemap_2z.asc')
+    ripcas_required_data_path = os.path.join(path_to_ripcas,
+                                             'veg_roughness_shearres.xlsx')
+
+    ripcas_directory = '/users/maturner/ripcas-w-partition'
+
+    # run ripcas using shear .asc
+    ripcas_output_asc = mr.run_ripcas(zone_map_path, ripcas_required_data_path,
+                                      ripcas_directory, shear_asc=shear_asc)
 
 
 @cli.command()

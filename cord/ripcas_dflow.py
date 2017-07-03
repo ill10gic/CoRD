@@ -173,7 +173,8 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     mesh_y = dflow_ds.variables['FlowElem_ycc'][:]
 
     # Shear varies with time, so select the last time step shear to assign to the mesh elements
-    # when we use stitch_partitioned_input
+    # when we use stitch_partitioned_output
+    mesh_shear = dflow_ds.variables['taus']  # take the last timestep
     mesh_shear = dflow_ds.variables['taus'][-1]  # take the last timestep
     # may be only 1D vector (stitched partitions)
     if isinstance(mesh_shear, np.float64):
@@ -222,7 +223,7 @@ def stitch_partitioned_output(mesh_nc_paths,
     Returns:
         (netCDF4.Dataset) Stitched-together dataset built from the DFLOW output
     """
-    # make a list of tuples of the partition ID number and netcdf map output files for every netcdf path 
+    # make a list of tuples of the partition ID number and netcdf map output files for every netcdf path
     # (For ID's, look for the 4-digit number in the name of the file)
     mesh_ncs = [
         (
@@ -413,6 +414,7 @@ class ESRIAsc:
         self.data = self.data.fillna(self.NODATA_value)
 
         with open(write_path, 'w+') as f:
+
             f.write("ncols {}\n".format(self.ncols))
             f.write("nrows {}\n".format(self.nrows))
             f.write("xllcorner {}\n".format(self.xllcorner))

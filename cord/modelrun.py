@@ -22,12 +22,13 @@ import time
 
 
 from collections import namedtuple
+from glob import glob
 from scipy.optimize import minimize_scalar
 
 try:
-    from ripcas_dflow import ESRIAsc, Pol, ripcas, shear_mesh_to_asc, veg2n
+    from ripcas_dflow import ESRIAsc, Pol, ripcas, shear_mesh_to_asc, veg2n, stitch_partitioned_output
 except ImportError:
-    from .ripcas_dflow import ESRIAsc, Pol, ripcas, shear_mesh_to_asc, veg2n
+    from .ripcas_dflow import ESRIAsc, Pol, ripcas, shear_mesh_to_asc, veg2n, stitch_partitioned_output
 
 
 class ModelRun(object):
@@ -56,7 +57,6 @@ class ModelRun(object):
         self.upstream_bc = BoundaryCondition()
         self.downstream_bc = BoundaryCondition()
         self.bc_solution_info = BoundarySolutionInfo()
-
 
     def calculate_bc(self, target_streamflow,
                      dbc_geometry_file, streambed_roughness, slope):
@@ -148,10 +148,10 @@ class ModelRun(object):
 
         shutil.copytree(path_to_dflow_inputs, dflow_run_directory)
 
-        self.dflow_shear_output =\
-            os.path.join(dflow_run_directory,
-                         'DFM_OUTPUT_base',
-                         'base_map.nc')
+        # self.dflow_shear_output =\
+            # os.path.join(dflow_run_directory,
+                         # 'DFM_OUTPUT_base',
+                         # 'base_map.nc')
 
         # write boundary conditions to file
         bc_up_path = os.path.join(dflow_run_directory,
@@ -168,55 +168,11 @@ class ModelRun(object):
         roughness_path = os.path.join(dflow_run_directory, 'n.pol')
 
         # convert the vegetation .asc to roughness .pol, write to veg_path
-        print 'converting veg .asc to roughness .pol'
         Pol.from_ascii(
             veg2n(self.vegetation_ascii,
                   veg_roughness_shearres_lookup,
                   streambed_roughness)
         ).write(roughness_path)
-
-        # oj = os.path.join
-        # self.dflow_shear_output =\
-            # os.path.join(dflow_run_directory,
-                         # 'DFM_OUTPUT_base',
-                         # 'base_map.nc')
-
-        # pbs_path = oj(dflow_run_directory, pbs_script_name)
-        # mdu_path = oj(dflow_run_directory, 'base.mdu')
-        # net_path = oj(dflow_run_directory, 'jem_net.nc')
-        # ext_path = oj(dflow_run_directory, 'jem.ext')
-        # brd_path = oj(dflow_run_directory, 'boundriverdown.pli')
-        # bru_path = oj(dflow_run_directory, 'boundriver_up.pli')
-
-        # with open(pbs_path, 'w') as f:
-            # p = _join_data_dir(oj('dflow_inputs', 'dflow_mpi.pbs'))
-            # s = open(p, 'r').read()
-            # f.write(s)
-
-        # with open(mdu_path, 'w') as f:
-            # p = _join_data_dir(oj('dflow_inputs', 'base.mdu'))
-            # s = open(p, 'r').read()
-            # f.write(s)
-
-        # with open(net_path, 'w') as f:
-            # p = _join_data_dir(oj('dflow_inputs', 'base_net.nc'))
-            # s = open(p, 'r').read()
-            # f.write(s)
-
-        # with open(ext_path, 'w') as f:
-            # p = _join_data_dir(oj('dflow_inputs', 'base.ext'))
-            # s = open(p, 'r').read()
-            # f.write(s)
-
-        # with open(brd_path, 'w') as f:
-            # p = _join_data_dir(oj('dflow_inputs', 'boundriverdown.pli'))
-            # s = open(p, 'r').read()
-            # f.write(s)
-
-        # with open(bru_path, 'w') as f:
-            # p = _join_data_dir(oj('dflow_inputs', 'boundriver_up.pli'))
-            # s = open(p, 'r').read()
-            # f.write(s)
 
         bkdir = os.getcwd()
         os.chdir(dflow_run_directory)
@@ -258,20 +214,28 @@ class ModelRun(object):
                 'DFLOW must run before ripcas can be run'
             )
 
-        if os.path.exists(ripcas_directory):
+        # if os.path.exists(ripcas_directory):
 
-            if not clobber:
-                raise RuntimeError(
-                    'DFLOW has already been run for this CoupledRun'
-                )
+            # if not clobber:
+                # raise RuntimeError(
+                    # 'DFLOW has already been run for this CoupledRun'
+                # )
 
-            shutil.rmtree(ripcas_directory)
+            # shutil.rmtree(ripcas_directory)
 
         self.ripcas_directory = ripcas_directory
 
-        os.mkdir(ripcas_directory)
+        # os.mkdir(ripcas_directory)
 
-        hdr = self.vegetation_ascii.header_dict()
+        partitioned_outputs = \
+            glob(os.path.join(dflow_run_dir, 'DFM_OUTPUT_base', 'base*map.nc'))
+
+        self.dflow_shear_output = \
+            os.path.join(ripcas_directory, 'stitched-shear.nc')
+
+        stitch_partitioned_output(g, self.dflow_shear_output)
+
+        hdr = ESRIAsc(self.vegetation_ascii).header_dict()
 
         if shear_asc is None:
             shear_asc = shear_mesh_to_asc(self.dflow_shear_output, hdr)
