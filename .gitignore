@@ -68,3 +68,4 @@ docs/_build
 not_actually_output.nc
 *.conf
 fakedir
+*tmp*

@@ -1,3 +1,10 @@
+# Usage
+
+to plot
+
+from cord import ESRIAsc
+...
+plt.matshow(veg_mat)
 
 # Installation
 
