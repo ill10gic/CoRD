@@ -228,7 +228,7 @@ class ModelRun(object):
         # os.mkdir(ripcas_directory)
 
         partitioned_outputs = \
-            glob(os.path.join(dflow_run_dir, 'DFM_OUTPUT_base', 'base*map.nc'))
+            glob(os.path.join(self.dflow_run_dir, 'DFM_OUTPUT_base', 'base*map.nc'))
 
         self.dflow_shear_output = \
             os.path.join(ripcas_directory, 'stitched-shear.nc')
