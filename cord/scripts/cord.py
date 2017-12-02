@@ -96,18 +96,18 @@ def _run_dflow(dflow_run_dir='/users/maturner/partition-run-dev'):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
 
-    print 'calculating boundary conditions...'
+    print ('calculating boundary conditions...')
     dbc_geometry = os.path.join(path_to_dflow_inputs, 'DBC_geometry.xyz')
     mr.calculate_bc(15, os.path.join(dflow_run_dir, dbc_geometry),
                     0.035, 0.001)
 
-    print 'done'
+    print ('done')
     path_to_ripcas = os.path.join(curdir, '..', 'data', 'ripcas_inputs')
     vegetation_map = os.path.join(path_to_ripcas, 'vegclass_2z.asc')
     veg_roughness_lookup = os.path.join(path_to_ripcas,
                                         'veg_roughness_shearres.xlsx')
 
-    print 'running DFLOW'
+    print ('running DFLOW')
     mr.run_dflow(dflow_run_dir, vegetation_map, veg_roughness_lookup,
                  0.035, dflow_run_fun=dflow_fun)
 
@@ -298,7 +298,7 @@ def post_hs(ctx, username, password, modelrun_dir, include_shear_nc,
        rtype, resource_title, keywords=keyword  # , abstract=abstract
     )
 
-    print "adding vegmap archive file %s to resource %s" % (veg_map_path, r_id)
+    print ('adding vegmap archive file {} to resource {}'.format(veg_map_path, r_id))
     hs.addResourceFile(r_id, os.path.join(export_dir, 'vegetation.zip'))
 
     inputs_dir = os.path.join(modelrun_dir, 'inputs')
@@ -306,7 +306,7 @@ def post_hs(ctx, username, password, modelrun_dir, include_shear_nc,
     shutil.make_archive(inputs_export_basename, 'zip', inputs_dir)
 
 
-    print "adding inputs archive file %s to resource %s" % (veg_map_path, r_id)
+    print ('adding inputs archive file {} to resource {}'.format(veg_map_path, r_id))
     hs.addResourceFile(
         r_id, os.path.join(export_dir, 'inputs.zip')
     )
@@ -324,7 +324,7 @@ def post_hs(ctx, username, password, modelrun_dir, include_shear_nc,
 
     shutil.make_archive(shear_export_dir, 'zip', shear_export_dir)
 
-    print "adding shear archive file %s to resource %s" % (veg_map_path, r_id)
+    print ('adding shear archive file {} to resource {}'.format(veg_map_path, r_id))
     hs.addResourceFile(
         r_id, os.path.join(export_dir, 'shear.zip')
     )
