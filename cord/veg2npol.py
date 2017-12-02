@@ -20,13 +20,13 @@ Example:
 
     if len(sys.argv) != 3:
 
-        print help_message
+        print (help_message)
 
         sys.exit(1)
 
     if sys.argv[1] == '-h':
 
-        print help_message
+        print (help_message)
 
         sys.exit(0)
 
