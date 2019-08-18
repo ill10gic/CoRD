@@ -13,14 +13,21 @@
 INPUT_FILE=base.mdu
 
 # Load the environment modules system
-source /etc/profile.d/modules.sh
+## This breaks our current implementation of lmod
+#source /etc/profile.d/modules.sh
 
 # Load the environment module for VASP version 5.2.12. 
 # This also loads the associated compiler and openMPI 
-module load dflow/1.1.125/openmpi/1.8.4/gcc/4.8.4
+# module load dflow/1.1.125/openmpi/1.8.4/gcc/4.8.4
+
+## curent dflow module
+
+module load dflow/1.1.198/impi/2017.2/intel/17.0.3.191
 
 # Determine the number of processors allocated to this job
-export PROCS=`cat $PBS_NODEFILE | wc -l`
+#export PROCS=`cat $PBS_NODEFILE | wc -l`
+
+## PBS actually has a built in varibale for this, which is $PBS_NP
 
 # Change to the directory that this job was submitted from
 cd $PBS_O_WORKDIR
@@ -28,7 +35,7 @@ cd $PBS_O_WORKDIR
 
 echo START TIME $(date)
 
-mpirun -np $PROCS -machinefile $PBS_NODEFILE dflowfm --nodisplay -t $PROCS --autostart $INPUT_FILE
+mpirun -np $PBS_NP -machinefile $PBS_NODEFILE dflowfm --nodisplay -t $PBS_NP --autostart $INPUT_FILE
 # dflowfm --nodisplay -t $PROCS --autostart $INPUT_FILE
 
 echo FINISH TIME $(date)
