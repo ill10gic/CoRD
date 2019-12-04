@@ -4,31 +4,32 @@
 ## Copyright (c) 2013 The Center for Advanced Research Computing
 ##                            at The University of New Mexico
 
-#PBS -lnodes=1:ppn=8
-#PBS -lwalltime=24:00:00
+#PBS -lnodes=4:ppn=8
+#PBS -lwalltime=48:00:00
 #PBS -S /bin/bash
 #PBS -o pbs.out
 #PBS -e pbs.err
 
 INPUT_FILE=base.mdu
+OUTPUT_FILE=out.log
 
 # Load the environment modules system
-source /etc/profile.d/modules.sh
+#source /etc/profile.d/modules.sh
 
 # Load the environment module for VASP version 5.2.12. 
 # This also loads the associated compiler and openMPI 
-module load dflow/1.1.125/openmpi/1.8.4/gcc/4.8.4
+# module load netcdf-cxx-4.2-intel-17.0.4-impi-g2xsxia
+module load dflow/1.1.198/impi/2017.2/intel/17.0.3.191
 
 # Determine the number of processors allocated to this job
 export PROCS=`cat $PBS_NODEFILE | wc -l`
 
+export TIME="Total time: %E \n Time (sec): %e \n Max, Ave mem (kb): %M, %K \n Swap: %W \n I,O: %I,%O \n"
 # Change to the directory that this job was submitted from
 cd $PBS_O_WORKDIR
 
-
 echo START TIME $(date)
 
-mpirun -np $PROCS -machinefile $PBS_NODEFILE dflowfm --nodisplay -t $PROCS --autostart $INPUT_FILE
-# dflowfm --nodisplay -t $PROCS --autostart $INPUT_FILE
+/usr/bin/time -o time.log mpirun -np $PROCS -machinefile $PBS_NODEFILE dflowfm --nodisplay -t 1 --autostart $INPUT_FILE
 
 echo FINISH TIME $(date)

@@ -182,6 +182,7 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
 
     # create the ascii raster info that the mesh will be transformed onto
     cellsize = header_dict['cellsize']
+    
     x = array([header_dict['xllcorner'] + (i*cellsize)
                for i in range(header_dict['ncols'])])
 
@@ -192,6 +193,11 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     grid_x, grid_y = meshgrid(x, y)
 
     # use linear interp so we don't have to install natgrid
+    print(mesh_x)
+    print(mesh_y)
+    print(grid_x)
+    print(grid_y)
+    print(mesh_shear)
     asc_mat = griddata((mesh_x, mesh_y), mesh_shear, (grid_x, grid_y))
 
     # not sure why, but this makes it align with the original vegetation map

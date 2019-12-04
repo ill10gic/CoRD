@@ -225,11 +225,13 @@ class ModelRun(object):
 
         self.ripcas_directory = ripcas_directory
 
-        # os.mkdir(ripcas_directory)
+        #uncommenting this to fix the bug that was occuring
+        if os.path.isdir(ripcas_directory) is False:
+            os.mkdir(ripcas_directory) #line 273, in stitch_partitioned_output, IOError: [Errno 13] Permission denied: 'data/ripcas-0/stitched-shear.nc'
 
         partitioned_outputs = \
             glob(
-                os.path.join(self.dflow_run_dir,
+                os.path.join(self.dflow_run_directory, #this line fixed to 'dflow_run_directory'
                              'DFM_OUTPUT_base',
                              'base*map.nc')
             )
@@ -238,9 +240,12 @@ class ModelRun(object):
             os.path.join(ripcas_directory, 'stitched-shear.nc')
 
         stitch_partitioned_output(partitioned_outputs, self.dflow_shear_output)
-
-        hdr = ESRIAsc(self.vegetation_ascii).header_dict()
-
+        print ('zone_map_path: ' + zone_map_path)
+        print ('dflow_run_directory: ' + self.dflow_run_directory)
+        print ('dflow_shear_output: ' + self.dflow_shear_output)
+        hdr = ESRIAsc(zone_map_path).header_dict()
+        print('hdr dict')
+        print(hdr)
         if shear_asc is None:
             shear_asc = shear_mesh_to_asc(self.dflow_shear_output, hdr)
         else:
@@ -523,6 +528,8 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
     shutil.copy(vegzone_map, inputs_dir)
     shutil.copy(veg_roughness_shearres_lookup, inputs_dir)
     shutil.copy(peak_flows_file, inputs_dir)
+    print (inputs_dir)
+    print (geometry_file)
     shutil.copy(geometry_file, inputs_dir)
 
     roughness_slope_path = os.path.join(inputs_dir, 'roughness_slope.txt')
@@ -622,8 +629,10 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
         # Debug is for running on a local machine
         if debug:
             p = _join_data_dir('shear_out.asc')
+            # mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
+            #               ripcas_dir, shear_asc=ESRIAsc(p))
             mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
-                          ripcas_dir, shear_asc=ESRIAsc(p))
+                          ripcas_dir)
 
         else:
             # if no explicit shear_asc is given, the method accesses
