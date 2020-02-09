@@ -171,15 +171,15 @@ def from_config(ctx, config_file):
 
     modelrun_series(
         cfg['data_dir'],
-        cfg['initial_vegetation_map'],
-        cfg['vegzone_map'],
-        cfg['veg_roughness_shearres_lookup'],
-        cfg['peak_flows_file'],
-        cfg['geometry_file'],
-        cfg['streambed_roughness'],
-        cfg['streambed_floodplain_roughness'],
-        cfg['streambed_slope'],
-        cfg['dflow_run_fun'],
+        cfg['initial_vegetation_map'], #vegclass_2z.asc - default
+        cfg['vegzone_map'], #zonemap_2z.asc  - default
+        cfg['veg_roughness_shearres_lookup'], #veg_roughness_shearres.xlsx  - default
+        cfg['peak_flows_file'], #required by user
+        cfg['geometry_file'], #DBC_geometry.xyz - required
+        cfg['streambed_roughness'], #float - required
+        cfg['streambed_floodplain_roughness'], #float - required
+        cfg['streambed_slope'], #float - required
+        cfg['dflow_run_fun'],  #not required - None
         logfile,
         ctx.obj['DEBUG']
     )

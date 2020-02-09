@@ -243,7 +243,7 @@ class ModelRun(object):
         print ('zone_map_path: ' + zone_map_path)
         print ('dflow_run_directory: ' + self.dflow_run_directory)
         print ('dflow_shear_output: ' + self.dflow_shear_output)
-        hdr = ESRIAsc(zone_map_path).header_dict()
+        hdr = self.vegetation_ascii.header_dict()
         print('hdr dict')
         print(hdr)
         if shear_asc is None:
@@ -528,8 +528,6 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
     shutil.copy(vegzone_map, inputs_dir)
     shutil.copy(veg_roughness_shearres_lookup, inputs_dir)
     shutil.copy(peak_flows_file, inputs_dir)
-    print (inputs_dir)
-    print (geometry_file)
     shutil.copy(geometry_file, inputs_dir)
 
     roughness_slope_path = os.path.join(inputs_dir, 'roughness_slope.txt')

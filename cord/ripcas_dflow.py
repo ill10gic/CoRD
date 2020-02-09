@@ -174,11 +174,11 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
 
     # Shear varies with time, so select the last time step shear to assign to the mesh elements
     # when we use stitch_partitioned_output
-    mesh_shear = dflow_ds.variables['taus']  # take the last timestep
-    mesh_shear = dflow_ds.variables['taus'][-1]  # take the last timestep
+    #mesh_shear = dflow_ds.variables['taus']  # take the last timestep
+    #mesh_shear = dflow_ds.variables['taus'][-1]  # take the last timestep
     # may be only 1D vector (stitched partitions)
-    if isinstance(mesh_shear, np.float64):
-        mesh_shear = dflow_ds.variables['taus'][:]
+    #if isinstance(mesh_shear, np.float64):
+    mesh_shear = dflow_ds.variables['taus'][:]
 
     # create the ascii raster info that the mesh will be transformed onto
     cellsize = header_dict['cellsize']
@@ -193,11 +193,11 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     grid_x, grid_y = meshgrid(x, y)
 
     # use linear interp so we don't have to install natgrid
-    print(mesh_x)
-    print(mesh_y)
-    print(grid_x)
-    print(grid_y)
-    print(mesh_shear)
+    print(mesh_x.shape)
+    print(mesh_y.shape)
+    print(grid_x.shape)
+    print(grid_y.shape)
+    print(mesh_shear.shape)
     asc_mat = griddata((mesh_x, mesh_y), mesh_shear, (grid_x, grid_y))
 
     # not sure why, but this makes it align with the original vegetation map
@@ -422,11 +422,17 @@ class ESRIAsc:
         with open(write_path, 'w+') as f:
 
             f.write("ncols {}\n".format(self.ncols))
+            print(self.ncols)
             f.write("nrows {}\n".format(self.nrows))
+            print(self.nrows)
             f.write("xllcorner {}\n".format(self.xllcorner))
+            print(self.xllcorner)
             f.write("yllcorner {}\n".format(self.yllcorner))
+            print(self.yllcorner)
             f.write("cellsize {}\n".format(self.cellsize))
+            print(self.cellsize)
             f.write("NODATA_value {}\n".format(self.NODATA_value))
+            print(self.NODATA_value)
 
             # prob not most efficient, but CASiMiR requires
             # ESRI Ascii w/ newlines
