@@ -55,7 +55,7 @@ mr.ripcas_has_run = True
 #             os.path.join('./testing-outputs/', 'shear_out.asc')
 #         )
 
-print('finished test')
+print('finished test') 
 
 
 # print("hello")
