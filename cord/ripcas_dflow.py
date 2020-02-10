@@ -11,12 +11,12 @@ import copy
 import numpy as np
 import re
 import six
-
+import math
 from netCDF4 import Dataset
 from numpy import (append, array, concatenate, fromstring, meshgrid,
                    reshape, flipud, isnan)
 from scipy.interpolate import griddata
-from pandas import read_table, read_excel, Series
+from pandas import read_table, read_excel, Series, DataFrame
 
 
 def ripcas_with_dflow_io(vegetation_map, zone_map, streambed_roughness,
@@ -396,6 +396,19 @@ class ESRIAsc:
                     cellsize=self.cellsize,
                     NODATA_value=self.NODATA_value)
 
+    def unflatten(self):
+        """
+        simple take the data portion of the ESRIAsc file and with the set nrows,ncols, reshape to 2d array
+        Returns:
+            None
+        """
+        unflattened_array = []
+        for row_index in range(self.nrows):
+            start_slice = row_index*self.ncols
+            end_slice = start_slice + self.ncols
+            unflattened_array.append(self.data[start_slice:end_slice])
+        return np.array(unflattened_array)
+
     def as_matrix(self, replace_nodata_val=None):
         """
         Convenience method to give 2D numpy.ndarray representation. If
@@ -414,6 +427,34 @@ class ESRIAsc:
             ret[ret == self.NODATA_value] = replace_nodata_val
 
         return ret
+
+    def write_unflattened_asc(self, write_path):
+        # replace nan with NODATA_value
+        #self.data = self.data.fillna(self.NODATA_value)
+        unflattened_data = self.unflatten()
+        with open(write_path, 'w+') as f:
+            f.write("ncols {}\n".format(self.ncols))
+            print(self.ncols)
+            f.write("nrows {}\n".format(self.nrows))
+            print(self.nrows)
+            f.write("xllcorner {}\n".format(self.xllcorner))
+            print(self.xllcorner)
+            f.write("yllcorner {}\n".format(self.yllcorner))
+            print(self.yllcorner)
+            f.write("cellsize {}\n".format(self.cellsize))
+            print(self.cellsize)
+            f.write("NODATA_value {}\n".format(self.NODATA_value))
+            print(self.NODATA_value)
+            for row_index in range(self.nrows):
+                for col_index in range(self.ncols):
+                    value = unflattened_data[row_index][col_index]
+                    if math.isnan(value):
+                        value = self.NODATA_value
+                    f.write(str(value) + ' ')
+                f.write('\n')
+
+
+
 
     def write(self, write_path):
         # replace nan with NODATA_value

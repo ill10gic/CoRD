@@ -33,20 +33,21 @@ if shear_asc is None:
 else:
     assert isinstance(shear_asc, ESRIAsc),\
         'shear_asc must be of type ESRIAsc if provided'
-
-# shear_asc.write(
-#     os.path.join(dflow_testout, 'shear_out.asc')
-# )
+#shear_asc.unflatten()
+shear_asc.write_unflattened_asc(
+    os.path.join(dflow_testout, 'shear_out.asc')
+)
 
 output_veg_ascii = ripcas(
     mr.vegetation_ascii, zone_map_path,
-    shear_asc, ripcas_required_data_path
+    shear_asc, required_ripcas_inputs
 )
+#output_veg_ascii.unflatten()
 
 output_vegetation_path = os.path.join(
     ripcas_testout, 'vegetation.asc'
 )
-output_veg_ascii.write(output_vegetation_path)
+output_veg_ascii.write_unflattened_asc(output_vegetation_path)
 
 mr.ripcas_has_run = True
 # shear_asc = shear_mesh_to_asc(dflow_shear_output, hdr)
