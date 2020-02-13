@@ -434,17 +434,17 @@ class ESRIAsc:
         unflattened_data = self.unflatten()
         with open(write_path, 'w+') as f:
             f.write("ncols {}\n".format(self.ncols))
-            print(self.ncols)
+            # print(self.ncols)
             f.write("nrows {}\n".format(self.nrows))
-            print(self.nrows)
+            # print(self.nrows)
             f.write("xllcorner {}\n".format(self.xllcorner))
-            print(self.xllcorner)
+            # print(self.xllcorner)
             f.write("yllcorner {}\n".format(self.yllcorner))
-            print(self.yllcorner)
+            # print(self.yllcorner)
             f.write("cellsize {}\n".format(self.cellsize))
-            print(self.cellsize)
+            # print(self.cellsize)
             f.write("NODATA_value {}\n".format(self.NODATA_value))
-            print(self.NODATA_value)
+            # print(self.NODATA_value)
             for row_index in range(self.nrows):
                 for col_index in range(self.ncols):
                     value = unflattened_data[row_index][col_index]

@@ -252,7 +252,7 @@ class ModelRun(object):
             assert isinstance(shear_asc, ESRIAsc),\
                 'shear_asc must be of type ESRIAsc if provided'
 
-        shear_asc.write(
+        shear_asc.write_unflattened_asc(
             os.path.join(self.dflow_run_directory, 'shear_out.asc')
         )
 
@@ -264,7 +264,7 @@ class ModelRun(object):
         output_vegetation_path = os.path.join(
             ripcas_directory, 'vegetation.asc'
         )
-        output_veg_ascii.write(output_vegetation_path)
+        output_veg_ascii.write_unflattened_asc(output_vegetation_path)
 
         self.ripcas_has_run = True
 
