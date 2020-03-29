@@ -446,12 +446,23 @@ def mr_log(log_f, msg):
     log_f.flush()
     os.fsync(log_f.fileno())
 
+def mr_progress_add_entry(progressfile,  flow_idx):
+    progressfile.write(str(flow_idx) + '\t0\t0\n')
+    progressfile.flush()
+    os.fsync(progressfile.fileno())
+
+
+def mr_progress_update_entry(progressfile,  flow_idx, dflow_status, ripcas_status):
+    lines = open(progressfile).read().splitlines()
+    lines[flow_idx + 1] = str(flow_idx) + '\t' + str(dflow_status) +'\t' + str(ripcas_status) + '\n'
+    open(progressfile,'w').write('\n'.join(lines))
+
 
 def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
                     veg_roughness_shearres_lookup, peak_flows_file,
                     geometry_file, streambed_roughness,
                     streambed_floodplain_roughness, streambed_slope,
-                    dflow_run_fun=None, log_f=None, debug=False):
+                    dflow_run_fun=None, log_f=None, progressfile='cord_progress.log', debug=False):
     '''
     Run a series of flow and succession models with peak flows given in
     peak_flows_file.
@@ -509,6 +520,10 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
     else:
         log_f = open(log_f, 'w')
+    
+    # Create the progress file if none exists - append the header for the flow_idx were on, dflow, and ripcas columns to indicate if they finished
+    progressfile = open(progressfile, 'w')
+    progressfile.write('flow_idx\tdflow_completed\tripcas_completed\n')
 
     # create a list that contains the peak flows from input file
     with open(peak_flows_file, 'r') as f:
@@ -539,6 +554,8 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
     # Iterate through all annual peak flows
     for flow_idx, flow in enumerate(peak_flows):
+        #create an entry in the progress file for this flow_idx
+        mr_progress_add_entry(progressfile, flow_idx)
         # create a ModelRun object
         mr = ModelRun()
         # Run the boundary condition calculation method;
@@ -620,6 +637,8 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
                 flow_idx
             )
         )
+        
+        mr_progress_update_entry(progressfile, flow_idx, 1, 0)
 
         # Creat a directory for this annual iteration of RipCAS
         ripcas_dir = os.path.join(data_dir, 'ripcas-' + str(flow_idx))
@@ -642,6 +661,7 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
                           ripcas_dir)
         # Note end of RipCAS in log file
         mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
+        mr_progress_update_entry(progressfile, flow_idx, 1, 1)
 
     log_f.close()
 

@@ -160,15 +160,16 @@ def _run_ripcas(dflow_run_dir='/users/maturner/partition-run-dev'):
 
 @cli.command()
 @click.argument('config_file', type=CPE())
+@click.option('-c','--continue', 'continue_cord', is_flag=True)
 @click.pass_context
-def from_config(ctx, config_file):
+def from_config(ctx, config_file, continue_cord):
     """Run CoRD with params from <config_file>"""
 
     cfg = load_args_from_config(config_file)
 
     ctxlog = ctx.obj['LOGFILE']
     logfile = ctxlog if ctxlog is not None else cfg['log_f']
-
+    progressfile = 'cord_progress.log'
     modelrun_series(
         cfg['data_dir'],
         cfg['initial_vegetation_map'], #vegclass_2z.asc - default
@@ -181,6 +182,7 @@ def from_config(ctx, config_file):
         cfg['streambed_slope'], #float - required
         cfg['dflow_run_fun'],  #not required - None
         logfile,
+        progressfile,
         ctx.obj['DEBUG']
     )
 
@@ -198,7 +200,7 @@ def from_config_cluster_acceptance(ctx, config_file):
 
     ctxlog = ctx.obj['LOGFILE']
     logfile = ctxlog if ctxlog is not None else cfg['log_f']
-
+    
     # long name, amazing results
     cluster_acceptance_dflow_out_ripcas_dflow(
         cfg['data_dir'],
