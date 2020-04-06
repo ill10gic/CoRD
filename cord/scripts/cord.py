@@ -166,7 +166,6 @@ def from_config(ctx, config_file, continue_cord):
     """Run CoRD with params from <config_file>"""
 
     cfg = load_args_from_config(config_file)
-
     ctxlog = ctx.obj['LOGFILE']
     logfile = ctxlog if ctxlog is not None else cfg['log_f']
     progressfile = 'cord_progress.log'

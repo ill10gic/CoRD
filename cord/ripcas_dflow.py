@@ -47,7 +47,7 @@ def ripcas_with_dflow_io(vegetation_map, zone_map, streambed_roughness,
         raise TypeError('vegetation_map must be an ESRIAsc instance')
     if not isinstance(zone_map, ESRIAsc):
         raise TypeError('vegetation_map must be an ESRIAsc instance')
-
+        
     shear_map = shear_mesh_to_asc(shear_nc_path, vegetation_map.header_dict())
 
     return Pol.from_ascii(
