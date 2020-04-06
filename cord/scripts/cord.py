@@ -168,6 +168,8 @@ def from_config(ctx, config_file, continue_cord):
     cfg = load_args_from_config(config_file)
     ctxlog = ctx.obj['LOGFILE']
     logfile = ctxlog if ctxlog is not None else cfg['log_f']
+    if continue_cord is True:
+        print (' continue cord is true')
     progressfile = 'cord_progress.log'
     modelrun_series(
         cfg['data_dir'],
@@ -182,6 +184,7 @@ def from_config(ctx, config_file, continue_cord):
         cfg['dflow_run_fun'],  #not required - None
         logfile,
         progressfile,
+        continue_cord,
         ctx.obj['DEBUG']
     )
 

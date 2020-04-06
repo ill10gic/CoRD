@@ -460,13 +460,28 @@ def mr_progress_update_entry(progressfilepath,  flow_idx, dflow_status, ripcas_s
     lines = open(progressfilepath).read().splitlines()
     lines[flow_idx + 1] = str(flow_idx) + '\t' + str(dflow_status) +'\t' + str(ripcas_status) + '\n'
     open(progressfilepath,'w').write('\n'.join(lines))
-
+    
+def determine_progress(progressfilepath):
+    lines = open(progressfilepath).read().splitlines()
+    if len(lines) == 1 and lines[0] == 'flow_idx\tdflow_completed\tripcas_completed':
+        return  0, False, False
+    else:
+        end_line = lines[ len(lines) - 1 ]
+        line_status_values =  end_line.split()
+        dflow_completed = True if line_status_values[1] == '1' else False
+        ripcas_completed = True if line_status_values[2] == '1' else False
+        flow_idx = int(line_status_values[0]) if dflow_completed == False or ripcas_completed == False else int(line_status_value[0]) + 1
+        if dflow_completed and ripcas_completed:
+            dflow_completed = False
+            ripcas_completed = False
+    return flow_idx, dflow_completed, ripcas_completed
+    
 
 def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
                     veg_roughness_shearres_lookup, peak_flows_file,
                     geometry_file, streambed_roughness,
                     streambed_floodplain_roughness, streambed_slope,
-                    dflow_run_fun=None, log_f=None, progressfilepath='cord_progress.log', debug=False):
+                    dflow_run_fun=None, log_f=None, progressfilepath='cord_progress.log', continue_cord = False, debug=False):
     '''
     Run a series of flow and succession models with peak flows given in
     peak_flows_file.
@@ -494,6 +509,8 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
             submitting a PBS job as is done on CARC systems
         log_f (str): log file. if none is given, defaults to `data_dir`.log
             with dashes replacing slashes
+        progressfilepath: the file path to the progress file for cord operations
+        continue_cord: determines whether cord will continue from the progress in the file at progressfilepath.
         debug (bool): whether or not to run in debug mode. If running in debug
             mode, each DFLOW run returns fake data and
             each RipCAS run takes cord/data/shear_out.asc as input
@@ -555,9 +572,16 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
     with open(roughness_slope_path, 'w') as f:
         f.write('roughness\tslope\n')
         f.write('%s\t%s\n' % (streambed_roughness, streambed_slope))
+        
+    # determine the flow idx to start from and determine if dflow or ripcas finished at that flow index
+    start_flow_idx = 0
+    skip_dflow = False 
+    skip_ripcas = False
+    if continue_cord is True:
+        start_flow_idx, dflow_completed, ripcas_completed = determine_progress(progressfilepath)
 
     # Iterate through all annual peak flows
-    for flow_idx, flow in enumerate(peak_flows):
+    for flow_idx, flow in enumerate(peak_flows, start=start_flow_idx):
         #create an entry in the progress file for this flow_idx
         mr_progress_add_entry(progressfile, flow_idx)
         # create a ModelRun object
@@ -590,24 +614,33 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
         # Debug is for running on a local machine
         if debug:
-            mr.run_dflow(dflow_dir, veg_file,
-                         veg_roughness_shearres_lookup, streambed_roughness)
-            job_id = 'debug'
+            if dflow_completed == False:
+                mr.run_dflow(dflow_dir, veg_file,
+                            veg_roughness_shearres_lookup, streambed_roughness)
+                job_id = 'debug'
 
         # If running on CARC
         else:
-            # Send DFLOW run to CARC
-            p_ref = mr.run_dflow(dflow_dir, veg_file,
-                                 veg_roughness_shearres_lookup,
-                                 streambed_roughness,
-                                 dflow_run_fun=dflow_fun)
+            if dflow_completed == False:
+                # Send DFLOW run to CARC
+                p_ref = mr.run_dflow(dflow_dir, veg_file,
+                                    veg_roughness_shearres_lookup,
+                                    streambed_roughness,
+                                    dflow_run_fun=dflow_fun)
 
-            job_id = p_ref.communicate()[0].split('.')[0]
-        # Enter run start in log file
-        mr_log(log_f, 'Job ID {0} submitted for DFLOW run {1}\n'.format(
-                job_id, flow_idx
+                job_id = p_ref.communicate()[0].split('.')[0]
+        if dflow_completed == False:
+            # Enter run start in log file
+            mr_log(log_f, 'Job ID {0} submitted for DFLOW run {1}\n'.format(
+                    job_id, flow_idx
+                )
             )
-        )
+        else:
+            # Enter run start in log file
+            mr_log(log_f, 'Job ID {0} already finished for DFLOW run {1} ... skipping\n'.format(
+                    job_id, flow_idx
+                )
+            )
 
         # check the status of the job by querying qstat; break loop when
         # job no longer exists, giving nonzero poll() value
@@ -625,23 +658,27 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
                 job_not_finished = False
 
             else:
-                p = subprocess.Popen(
-                    'qstat ' + job_id, shell=True,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
+                if dflow_completed == False:
+                    p = subprocess.Popen(
+                        'qstat ' + job_id, shell=True,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                    )
 
-                p.communicate()
+                    p.communicate()
 
-                poll = p.poll()
-                job_not_finished = poll == 0
+                    poll = p.poll()
+                    job_not_finished = poll == 0
 
-                time.sleep(600)
+                    time.sleep(600)
+                else:
+                    job_not_finished = False
+                
         mr_log(
             log_f, 'DFLOW run {0} finished, starting RipCAS\n'.format(
                 flow_idx
             )
         )
-        
+        dflow_completed == True
         mr_progress_update_entry(progressfilepath, flow_idx, 1, 0)
 
         # Creat a directory for this annual iteration of RipCAS
@@ -649,23 +686,28 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
         # Debug is for running on a local machine
         if debug:
-            p = _join_data_dir('shear_out.asc')
-            mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
-                          ripcas_dir, shear_asc=ESRIAsc(p))
-            # mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
-            #               ripcas_dir)
+            if ripcas_completed == False:
+                p = _join_data_dir('shear_out.asc')
+                mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
+                            ripcas_dir, shear_asc=ESRIAsc(p))
+                # mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
+                #               ripcas_dir)
 
         else:
-            # if no explicit shear_asc is given, the method accesses
-            # the dflow_shear_output attribute. XXX TODO this method will
-            # need to be updated to build a shear_asc by stitching together
-            # the partitioned files using stitch_partitioned_output
-            # in cord/ripcas_dflow.py
-            mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
-                          ripcas_dir)
+            if ripcas_completed == False:
+                # if no explicit shear_asc is given, the method accesses
+                # the dflow_shear_output attribute. XXX TODO this method will
+                # need to be updated to build a shear_asc by stitching together
+                # the partitioned files using stitch_partitioned_output
+                # in cord/ripcas_dflow.py
+                mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
+                            ripcas_dir)
+                ripcas_completed == True
         # Note end of RipCAS in log file
         mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
         mr_progress_update_entry(progressfilepath, flow_idx, 1, 1)
+        
+        
 
     log_f.close()
 
