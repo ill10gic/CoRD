@@ -450,32 +450,69 @@ def mr_log(log_f, msg):
     log_f.flush()
     os.fsync(log_f.fileno())
 
-def mr_progress_add_entry(progressfile,  flow_idx):
-    progressfile.write(str(flow_idx) + '\t0\t0\n')
-    progressfile.flush()
-    os.fsync(progressfile.fileno())
+def mr_progress_add_entry(progressfilepath,  flow_idx, dflow_completed, ripcas_completed):
+
+    dflow_complete = 1 if dflow_completed == True else 0
+    ripcas_complete = 1 if ripcas_completed == True else 0
+    if (dflow_complete == 1 and ripcas_complete == 0) == False:
+        lines = open(progressfilepath).read().splitlines()
+        lines.append(str(flow_idx) + '\t' + str(dflow_complete) +'\t' + str(ripcas_complete) + '\n')
+        open(progressfilepath,'w').write('\n'.join(lines))
+    # elif dflow_complete == 0 and ripcas_complete == 0:
+    #     lines = open(progressfilepath).read().splitlines()
+    #     lines.append(str(flow_idx) + '\t' + str(dflow_complete) + '\t' + str(ripcas_complete) + '\n')
+    #     open(progressfilepath, 'w').write('\n'.join(lines))
+    # file = open(progressfilepath).read().splitlines()
+    # file.write(str(flow_idx) + '\t0\t0\n')
+    # file.flush()
+    # os.fsync(file.fileno())
+    
 
 
 def mr_progress_update_entry(progressfilepath,  flow_idx, dflow_status, ripcas_status):
+    print('flow_idx {}, dflow_status {}, ripcas {}'.format(flow_idx,dflow_status,ripcas_status))
     lines = open(progressfilepath).read().splitlines()
-    lines[flow_idx + 1] = str(flow_idx) + '\t' + str(dflow_status) +'\t' + str(ripcas_status) + '\n'
-    open(progressfilepath,'w').write('\n'.join(lines))
-    
-def determine_progress(progressfilepath):
-    lines = open(progressfilepath).read().splitlines()
-    if len(lines) == 1 and lines[0] == 'flow_idx\tdflow_completed\tripcas_completed':
-        return  0, False, False
+    if len(lines) - 1 < flow_idx + 1:
+        lines.append(str(flow_idx + 1) + '\t' + str(0) + '\t' + str(0) + '\n')
     else:
-        end_line = lines[ len(lines) - 1 ]
-        line_status_values =  end_line.split()
-        dflow_completed = True if line_status_values[1] == '1' else False
-        ripcas_completed = True if line_status_values[2] == '1' else False
-        flow_idx = int(line_status_values[0]) if dflow_completed == False or ripcas_completed == False else int(line_status_value[0]) + 1
-        if dflow_completed and ripcas_completed:
-            dflow_completed = False
-            ripcas_completed = False
-    return flow_idx, dflow_completed, ripcas_completed
+        lines[flow_idx + 1] = str(flow_idx) + '\t' + str(dflow_status) +'\t' + str(ripcas_status) + '\n'
+    open(progressfilepath, 'w').write('\n'.join(lines))
+
     
+def determine_progress(progressfilepath, log_f):
+    flow_idx = 0
+    dflow_completed = False
+    ripcas_completed = False
+    if os.path.exists(progressfilepath) == False:
+        mr_log(
+                log_f,
+                'No progress exists for this model. Starting from flow index 0...\n'
+        )
+        progressfile = open(progressfilepath, 'w')
+        progressfile.write('flow_idx\tdflow_completed\tripcas_completed\n')
+        progressfile.close()
+        return 0, False, False
+    else: 
+        lines = open(progressfilepath).read().splitlines()
+        if len(lines) == 1 and lines[0] == 'flow_idx\tdflow_completed\tripcas_completed':
+            return  0, False, False
+        else:
+            end_line = lines[ len(lines) - 1 ]
+            line_status_values =  end_line.split()
+            dflow_completed = True if line_status_values[1] == '1' else False
+            ripcas_completed = True if line_status_values[2] == '1' else False
+            flow_idx = int(line_status_values[0]) 
+            if dflow_completed == True and ripcas_completed == True: 
+                flow_idx = int(line_status_values[0]) + 1
+                dflow_completed = False
+                ripcas_completed = False
+        mr_log(
+            log_f,
+            'continuing progress and starting cord from flow_idx {} - dflow is {} and ripcas is {}'.format(flow_idx, dflow_completed, ripcas_completed)
+        )
+    print('starting cord from flow_idx {} - dflow is {} and ripcas is {}'.format(flow_idx, dflow_completed, ripcas_completed))
+    return flow_idx, dflow_completed, ripcas_completed
+
 
 def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
                     veg_roughness_shearres_lookup, peak_flows_file,
@@ -518,6 +555,7 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
         returns:
             None
     '''
+
     # If standard run on CARC
     if dflow_run_fun is None:
 
@@ -541,10 +579,23 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
     else:
         log_f = open(log_f, 'w')
+        
+    # determine the flow idx to start from and determine if dflow or ripcas finished at that flow index
+    start_flow_idx, dflow_completed, ripcas_completed = 0, False, False
     
     # Create the progress file if none exists - append the header for the flow_idx were on, dflow, and ripcas columns to indicate if they finished
-    progressfile = open(progressfilepath, 'w')
-    progressfile.write('flow_idx\tdflow_completed\tripcas_completed\n')
+    if continue_cord == False:
+        progressfile = open(progressfilepath, 'w')
+        progressfile.write('flow_idx\tdflow_completed\tripcas_completed\n')
+        progressfile.close()
+    else:
+        mr_log(
+                log_f,
+                'Trying to continue from progress file\n'
+        )
+        start_flow_idx, dflow_completed, ripcas_completed = determine_progress(progressfilepath, log_f)
+
+        
 
     # create a list that contains the peak flows from input file
     with open(peak_flows_file, 'r') as f:
@@ -573,35 +624,33 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
         f.write('roughness\tslope\n')
         f.write('%s\t%s\n' % (streambed_roughness, streambed_slope))
         
-    # determine the flow idx to start from and determine if dflow or ripcas finished at that flow index
-    start_flow_idx = 0
-    skip_dflow = False 
-    skip_ripcas = False
-    if continue_cord is True:
-        start_flow_idx, dflow_completed, ripcas_completed = determine_progress(progressfilepath)
+    
 
     # Iterate through all annual peak flows
     for flow_idx, flow in enumerate(peak_flows, start=start_flow_idx):
-        #create an entry in the progress file for this flow_idx
-        mr_progress_add_entry(progressfile, flow_idx)
         # create a ModelRun object
         mr = ModelRun()
+        if dflow_completed:
+            mr.dflow_has_run = True
+        if ripcas_completed:
+            mr.ripcas_has_run = True
         # Run the boundary condition calculation method;
         # produces upstream flow file and downstream stage file for DFLOW to use
-        mr.calculate_bc(
-            flow, geometry_file,
-            streambed_floodplain_roughness, streambed_slope
-        )
-
-        # Enter information into log file
-        mr_log(
-            log_f, 'Boundary conditions for flow index {0} finished\n'.format(
-                flow_idx
+        if dflow_completed == False:
+            mr.calculate_bc(
+                flow, geometry_file,
+                streambed_floodplain_roughness, streambed_slope
             )
-        )
 
-        # Create new directory for this annual flow iteration of DFLOW
-        dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
+            # Enter information into log file
+            mr_log(
+                log_f, 'Boundary conditions for flow index {0} finished\n'.format(
+                    flow_idx
+                )
+            )
+
+            # Create new directory for this annual flow iteration of DFLOW
+            dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
 
         # Get veg map
         if flow_idx == 0:
@@ -630,15 +679,21 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
                 job_id = p_ref.communicate()[0].split('.')[0]
         if dflow_completed == False:
+            print('Job ID {0} submitted for DFLOW run {1}\n'.format(
+                    job_id, flow_idx
+                ))
             # Enter run start in log file
             mr_log(log_f, 'Job ID {0} submitted for DFLOW run {1}\n'.format(
                     job_id, flow_idx
                 )
             )
         else:
+            print('Job ID {0} already finished for DFLOW run {1} ... skipping\n'.format(
+                    -1, flow_idx
+                ))
             # Enter run start in log file
             mr_log(log_f, 'Job ID {0} already finished for DFLOW run {1} ... skipping\n'.format(
-                    job_id, flow_idx
+                    -1, flow_idx
                 )
             )
 
@@ -646,13 +701,20 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
         # job no longer exists, giving nonzero poll() value
         job_not_finished = True
         while job_not_finished:
-
-            mr_log(
-                log_f,
-                'Job ID {0} not yet finished for DFLOW run {1}\n'.format(
-                    job_id, flow_idx
+            if debug:
+                mr_log(
+                    log_f,
+                    'Job ID {0} not yet finished for DFLOW run {1}\n'.format(
+                        -1, flow_idx
+                    )
                 )
-            )
+            else:
+                mr_log(
+                    log_f,
+                    'Job ID {0} not yet finished for DFLOW run {1}\n'.format(
+                        job_id, flow_idx
+                    )
+                )
 
             if debug:
                 job_not_finished = False
@@ -686,10 +748,13 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
         # Debug is for running on a local machine
         if debug:
+            print('running ripcas for flow {}\n'.format(
+                flow_idx
+            ))
             if ripcas_completed == False:
                 p = _join_data_dir('shear_out.asc')
-                mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
-                            ripcas_dir, shear_asc=ESRIAsc(p))
+                # mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
+                #             ripcas_dir, shear_asc=ESRIAsc(p))
                 # mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
                 #               ripcas_dir)
 
@@ -706,6 +771,8 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
         # Note end of RipCAS in log file
         mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
         mr_progress_update_entry(progressfilepath, flow_idx, 1, 1)
+        dflow_completed, ripcas_completed = False, False
+
         
         
 

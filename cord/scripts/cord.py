@@ -160,7 +160,7 @@ def _run_ripcas(dflow_run_dir='/users/maturner/partition-run-dev'):
 
 @cli.command()
 @click.argument('config_file', type=CPE())
-@click.option('-c','--continue', 'continue_cord', is_flag=True)
+@click.option('-c', '--continue', 'continue_cord', is_flag=True)
 @click.pass_context
 def from_config(ctx, config_file, continue_cord):
     """Run CoRD with params from <config_file>"""
@@ -168,8 +168,6 @@ def from_config(ctx, config_file, continue_cord):
     cfg = load_args_from_config(config_file)
     ctxlog = ctx.obj['LOGFILE']
     logfile = ctxlog if ctxlog is not None else cfg['log_f']
-    if continue_cord is True:
-        print (' continue cord is true')
     progressfile = 'cord_progress.log'
     modelrun_series(
         cfg['data_dir'],
