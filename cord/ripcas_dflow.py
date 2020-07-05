@@ -11,12 +11,12 @@ import copy
 import numpy as np
 import re
 import six
-
+import math
 from netCDF4 import Dataset
 from numpy import (append, array, concatenate, fromstring, meshgrid,
                    reshape, flipud, isnan)
 from scipy.interpolate import griddata
-from pandas import read_table, read_excel, Series
+from pandas import read_table, read_excel, Series, DataFrame
 
 
 def ripcas_with_dflow_io(vegetation_map, zone_map, streambed_roughness,
@@ -47,7 +47,7 @@ def ripcas_with_dflow_io(vegetation_map, zone_map, streambed_roughness,
         raise TypeError('vegetation_map must be an ESRIAsc instance')
     if not isinstance(zone_map, ESRIAsc):
         raise TypeError('vegetation_map must be an ESRIAsc instance')
-
+        
     shear_map = shear_mesh_to_asc(shear_nc_path, vegetation_map.header_dict())
 
     return Pol.from_ascii(
@@ -173,14 +173,16 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     mesh_y = dflow_ds.variables['FlowElem_ycc'][:]
 
     # Shear varies with time, so select the last time step shear to assign to the mesh elements
-    # when we use stitch_partitioned_input
-    mesh_shear = dflow_ds.variables['taus'][-1]  # take the last timestep
+    # when we use stitch_partitioned_output
+    #mesh_shear = dflow_ds.variables['taus']  # take the last timestep
+    #mesh_shear = dflow_ds.variables['taus'][-1]  # take the last timestep
     # may be only 1D vector (stitched partitions)
-    if isinstance(mesh_shear, np.float64):
-        mesh_shear = dflow_ds.variables['taus'][:]
+    #if isinstance(mesh_shear, np.float64):
+    mesh_shear = dflow_ds.variables['taus'][:]
 
     # create the ascii raster info that the mesh will be transformed onto
     cellsize = header_dict['cellsize']
+    
     x = array([header_dict['xllcorner'] + (i*cellsize)
                for i in range(header_dict['ncols'])])
 
@@ -191,6 +193,11 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     grid_x, grid_y = meshgrid(x, y)
 
     # use linear interp so we don't have to install natgrid
+    print(mesh_x.shape)
+    print(mesh_y.shape)
+    print(grid_x.shape)
+    print(grid_y.shape)
+    print(mesh_shear.shape)
     asc_mat = griddata((mesh_x, mesh_y), mesh_shear, (grid_x, grid_y))
 
     # not sure why, but this makes it align with the original vegetation map
@@ -222,7 +229,7 @@ def stitch_partitioned_output(mesh_nc_paths,
     Returns:
         (netCDF4.Dataset) Stitched-together dataset built from the DFLOW output
     """
-    # make a list of tuples of the partition ID number and netcdf map output files for every netcdf path 
+    # make a list of tuples of the partition ID number and netcdf map output files for every netcdf path
     # (For ID's, look for the 4-digit number in the name of the file)
     mesh_ncs = [
         (
@@ -389,6 +396,19 @@ class ESRIAsc:
                     cellsize=self.cellsize,
                     NODATA_value=self.NODATA_value)
 
+    def unflatten(self):
+        """
+        simple take the data portion of the ESRIAsc file and with the set nrows,ncols, reshape to 2d array
+        Returns:
+            None
+        """
+        unflattened_array = []
+        for row_index in range(self.nrows):
+            start_slice = row_index*self.ncols
+            end_slice = start_slice + self.ncols
+            unflattened_array.append(self.data[start_slice:end_slice])
+        return np.array(unflattened_array)
+
     def as_matrix(self, replace_nodata_val=None):
         """
         Convenience method to give 2D numpy.ndarray representation. If
@@ -408,17 +428,52 @@ class ESRIAsc:
 
         return ret
 
+    def write_unflattened_asc(self, write_path):
+        # replace nan with NODATA_value
+        #self.data = self.data.fillna(self.NODATA_value)
+        unflattened_data = self.unflatten()
+        with open(write_path, 'w+') as f:
+            f.write("ncols {}\n".format(self.ncols))
+            # print(self.ncols)
+            f.write("nrows {}\n".format(self.nrows))
+            # print(self.nrows)
+            f.write("xllcorner {}\n".format(self.xllcorner))
+            # print(self.xllcorner)
+            f.write("yllcorner {}\n".format(self.yllcorner))
+            # print(self.yllcorner)
+            f.write("cellsize {}\n".format(self.cellsize))
+            # print(self.cellsize)
+            f.write("NODATA_value {}\n".format(self.NODATA_value))
+            # print(self.NODATA_value)
+            for row_index in range(self.nrows):
+                for col_index in range(self.ncols):
+                    value = unflattened_data[row_index][col_index]
+                    if math.isnan(value):
+                        value = self.NODATA_value
+                    f.write(str(value) + ' ')
+                f.write('\n')
+
+
+
+
     def write(self, write_path):
         # replace nan with NODATA_value
         self.data = self.data.fillna(self.NODATA_value)
 
         with open(write_path, 'w+') as f:
+
             f.write("ncols {}\n".format(self.ncols))
+            print(self.ncols)
             f.write("nrows {}\n".format(self.nrows))
+            print(self.nrows)
             f.write("xllcorner {}\n".format(self.xllcorner))
+            print(self.xllcorner)
             f.write("yllcorner {}\n".format(self.yllcorner))
+            print(self.yllcorner)
             f.write("cellsize {}\n".format(self.cellsize))
+            print(self.cellsize)
             f.write("NODATA_value {}\n".format(self.NODATA_value))
+            print(self.NODATA_value)
 
             # prob not most efficient, but CASiMiR requires
             # ESRI Ascii w/ newlines

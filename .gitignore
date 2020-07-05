@@ -1,3 +1,5 @@
+ cord/data/dflow_inputs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -68,3 +70,4 @@ docs/_build
 not_actually_output.nc
 *.conf
 fakedir
+*tmp*
