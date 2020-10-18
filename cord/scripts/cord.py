@@ -182,6 +182,7 @@ def from_config(ctx, config_file, continue_cord):
         cfg['dflow_run_fun'],  #not required - None
         logfile,
         progressfile,
+        cfg['flood_threshold'],
         continue_cord,
         ctx.obj['DEBUG']
     )
@@ -350,6 +351,9 @@ def load_args_from_config(config_file):
     gen = dict(cfg['General'])
     if gen['log_f'] == u'':
         gen['log_f'] = None
+        
+    if gen['flood_threshold'] == u'':
+        gen['flood_threshold'] = None
 
     if gen['dflow_run_fun'] == u'':
         gen['dflow_run_fun'] = None

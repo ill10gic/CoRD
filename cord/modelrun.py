@@ -211,68 +211,101 @@ class ModelRun(object):
             return ret
 
     def run_ripcas(self, zone_map_path, ripcas_required_data_path,
-                   ripcas_directory, shear_asc=None, clobber=True):
-
+                   ripcas_directory, shear_asc=None, clobber=True, flow=None, flood_threshold=None):
+        
         if not self.dflow_has_run:
             raise RuntimeError(
                 'DFLOW must run before ripcas can be run'
             )
+        if flow > flood_threshold or flood_threshold is None:
+            print ('in ripcas - flow greater, than threshhold, attempting to stitch output from dflow')
+            # if os.path.exists(ripcas_directory):
 
-        # if os.path.exists(ripcas_directory):
+                # if not clobber:
+                    # raise RuntimeError(
+                        # 'DFLOW has already been run for this CoupledRun'
+                    # )
 
-            # if not clobber:
-                # raise RuntimeError(
-                    # 'DFLOW has already been run for this CoupledRun'
-                # )
+                # shutil.rmtree(ripcas_directory)
 
-            # shutil.rmtree(ripcas_directory)
+            self.ripcas_directory = ripcas_directory
 
-        self.ripcas_directory = ripcas_directory
+            #uncommenting this to fix the bug that was occuring
+            if os.path.isdir(ripcas_directory) is False:
+                os.mkdir(ripcas_directory) #line 273, in stitch_partitioned_output, IOError: [Errno 13] Permission denied: 'data/ripcas-0/stitched-shear.nc'
 
-        #uncommenting this to fix the bug that was occuring
-        if os.path.isdir(ripcas_directory) is False:
-            os.mkdir(ripcas_directory) #line 273, in stitch_partitioned_output, IOError: [Errno 13] Permission denied: 'data/ripcas-0/stitched-shear.nc'
+            partitioned_outputs = \
+                glob(
+                    os.path.join(self.dflow_run_directory, #this line fixed to 'dflow_run_directory'
+                                'DFM_OUTPUT_base',
+                                'base*map.nc')
+                )
 
-        partitioned_outputs = \
-            glob(
-                os.path.join(self.dflow_run_directory, #this line fixed to 'dflow_run_directory'
-                             'DFM_OUTPUT_base',
-                             'base*map.nc')
+            self.dflow_shear_output = \
+                os.path.join(ripcas_directory, 'stitched-shear.nc')
+
+            stitch_partitioned_output(partitioned_outputs, self.dflow_shear_output)
+            print ('zone_map_path: ' + zone_map_path)
+            print ('dflow_run_directory: ' + self.dflow_run_directory)
+            print ('dflow_shear_output: ' + self.dflow_shear_output)
+            hdr = self.vegetation_ascii.header_dict()
+            print('hdr dict')
+            print(hdr)
+            if shear_asc is None:
+                shear_asc = shear_mesh_to_asc(self.dflow_shear_output, hdr)
+            else:
+                assert isinstance(shear_asc, ESRIAsc),\
+                    'shear_asc must be of type ESRIAsc if provided'
+
+            shear_asc.write_unflattened_asc(
+                os.path.join(self.dflow_run_directory, 'shear_out.asc')
             )
 
-        self.dflow_shear_output = \
-            os.path.join(ripcas_directory, 'stitched-shear.nc')
+            output_veg_ascii = ripcas(
+                self.vegetation_ascii, zone_map_path,
+                shear_asc, ripcas_required_data_path
+            )
 
-        stitch_partitioned_output(partitioned_outputs, self.dflow_shear_output)
-        print ('zone_map_path: ' + zone_map_path)
-        print ('dflow_run_directory: ' + self.dflow_run_directory)
-        print ('dflow_shear_output: ' + self.dflow_shear_output)
-        hdr = self.vegetation_ascii.header_dict()
-        print('hdr dict')
-        print(hdr)
-        if shear_asc is None:
-            shear_asc = shear_mesh_to_asc(self.dflow_shear_output, hdr)
+            output_vegetation_path = os.path.join(
+                ripcas_directory, 'vegetation.asc'
+            )
+            output_veg_ascii.write_unflattened_asc(output_vegetation_path)
+
+            self.ripcas_has_run = True
+
+            return output_veg_ascii
         else:
-            assert isinstance(shear_asc, ESRIAsc),\
-                'shear_asc must be of type ESRIAsc if provided'
+            print ('in ripcas - flow less than threshhold, creating zeroed shear_out.asc to fake DFLOW output')
+            self.ripcas_directory = ripcas_directory
+            
+            #uncommenting this to fix the bug that was occuring
+            if os.path.isdir(ripcas_directory) is False:
+                os.mkdir(ripcas_directory) #line 273, in stitch_partitioned_output, IOError: [Errno 13] Permission denied: 'data/ripcas-0/stitched-shear.nc'
+                
+            #create empty shear_out.asc file
+            hdr = self.vegetation_ascii.header_dict()
+            # if shear_asc is None:
+            #     shear_asc = shear_mesh_to_asc(self.dflow_shear_output, hdr)
+            # else:
+            #     assert isinstance(shear_asc, ESRIAsc),\
+            #         'shear_asc must be of type ESRIAsc if provided'
+            shear_asc = ESRIAsc(zone_map_path).write_zero_asc(
+                os.path.join(self.dflow_run_directory, 'shear_out.asc')
+            )
 
-        shear_asc.write_unflattened_asc(
-            os.path.join(self.dflow_run_directory, 'shear_out.asc')
-        )
+            output_veg_ascii = ripcas(
+                self.vegetation_ascii, zone_map_path,
+                shear_asc, ripcas_required_data_path
+            )
 
-        output_veg_ascii = ripcas(
-            self.vegetation_ascii, zone_map_path,
-            shear_asc, ripcas_required_data_path
-        )
+            output_vegetation_path = os.path.join(
+                ripcas_directory, 'vegetation.asc'
+            )
+            output_veg_ascii.write_unflattened_asc(output_vegetation_path)
 
-        output_vegetation_path = os.path.join(
-            ripcas_directory, 'vegetation.asc'
-        )
-        output_veg_ascii.write_unflattened_asc(output_vegetation_path)
+            self.ripcas_has_run = True
 
-        self.ripcas_has_run = True
-
-        return output_veg_ascii
+            return output_veg_ascii
 
 
 BoundarySolutionInfo = namedtuple(
@@ -518,7 +551,7 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
                     veg_roughness_shearres_lookup, peak_flows_file,
                     geometry_file, streambed_roughness,
                     streambed_floodplain_roughness, streambed_slope,
-                    dflow_run_fun=None, log_f=None, progressfilepath='cord_progress.log', continue_cord = False, debug=False):
+                    dflow_run_fun=None, log_f=None, progressfilepath='cord_progress.log', flood_threshold=None, continue_cord = False, debug=False):
     '''
     Run a series of flow and succession models with peak flows given in
     peak_flows_file.
@@ -547,6 +580,7 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
         log_f (str): log file. if none is given, defaults to `data_dir`.log
             with dashes replacing slashes
         progressfilepath: the file path to the progress file for cord operations
+        flood_threshold: threshold if specified, will skip the current iteration of dflow and pass a "0 file" to ripcas so veg will not be affected by shear stress
         continue_cord: determines whether cord will continue from the progress in the file at progressfilepath.
         debug (bool): whether or not to run in debug mode. If running in debug
             mode, each DFLOW run returns fake data and
@@ -628,120 +662,143 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
     # Iterate through all annual peak flows
     for flow_idx, flow in enumerate(peak_flows, start=start_flow_idx):
+        
         # create a ModelRun object
         mr = ModelRun()
         if dflow_completed:
             mr.dflow_has_run = True
         if ripcas_completed:
             mr.ripcas_has_run = True
-        # Run the boundary condition calculation method;
-        # produces upstream flow file and downstream stage file for DFLOW to use
-        if dflow_completed == False:
-            mr.calculate_bc(
-                flow, geometry_file,
-                streambed_floodplain_roughness, streambed_slope
-            )
-
+        if flow > flood_threshold or flood_threshold is None:
             # Enter information into log file
             mr_log(
-                log_f, 'Boundary conditions for flow index {0} finished\n'.format(
+                log_f, 'flow passes threshold for idx {0} - attempting to run DFLOW\n'.format(
                     flow_idx
                 )
-            )
-
-            # Create new directory for this annual flow iteration of DFLOW
-            dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
-
-        # Get veg map
-        if flow_idx == 0:
-            veg_file = initial_vegetation_map
-        else:
-            # Take RipCAS outputs as DFLOW inputs from previous timestep
-            veg_file = os.path.join(
-                data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
-            )
-
-        # Debug is for running on a local machine
-        if debug:
+            ) 
+            # Run the boundary condition calculation method;
+            # produces upstream flow file and downstream stage file for DFLOW to use
             if dflow_completed == False:
-                mr.run_dflow(dflow_dir, veg_file,
-                            veg_roughness_shearres_lookup, streambed_roughness)
-                job_id = 'debug'
-
-        # If running on CARC
-        else:
-            if dflow_completed == False:
-                # Send DFLOW run to CARC
-                p_ref = mr.run_dflow(dflow_dir, veg_file,
-                                    veg_roughness_shearres_lookup,
-                                    streambed_roughness,
-                                    dflow_run_fun=dflow_fun)
-
-                job_id = p_ref.communicate()[0].split('.')[0]
-        if dflow_completed == False:
-            print('Job ID {0} submitted for DFLOW run {1}\n'.format(
-                    job_id, flow_idx
-                ))
-            # Enter run start in log file
-            mr_log(log_f, 'Job ID {0} submitted for DFLOW run {1}\n'.format(
-                    job_id, flow_idx
+                mr.calculate_bc(
+                    flow, geometry_file,
+                    streambed_floodplain_roughness, streambed_slope
                 )
-            )
-        else:
-            print('Job ID {0} already finished for DFLOW run {1} ... skipping\n'.format(
-                    -1, flow_idx
-                ))
-            # Enter run start in log file
-            mr_log(log_f, 'Job ID {0} already finished for DFLOW run {1} ... skipping\n'.format(
-                    -1, flow_idx
-                )
-            )
 
-        # check the status of the job by querying qstat; break loop when
-        # job no longer exists, giving nonzero poll() value
-        job_not_finished = True
-        while job_not_finished:
-            if debug:
+                # Enter information into log file
                 mr_log(
-                    log_f,
-                    'Job ID {0} not yet finished for DFLOW run {1}\n'.format(
-                        -1, flow_idx
+                    log_f, 'Boundary conditions for flow index {0} finished\n'.format(
+                        flow_idx
                     )
                 )
+
+                # Create new directory for this annual flow iteration of DFLOW
+                dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
+
+            # Get veg map
+            if flow_idx == 0:
+                veg_file = initial_vegetation_map
             else:
-                mr_log(
-                    log_f,
-                    'Job ID {0} not yet finished for DFLOW run {1}\n'.format(
+                # Take RipCAS outputs as DFLOW inputs from previous timestep
+                veg_file = os.path.join(
+                    data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
+                )
+
+            # Debug is for running on a local machine
+            if debug:
+                if dflow_completed == False:
+                    mr.run_dflow(dflow_dir, veg_file,
+                                veg_roughness_shearres_lookup, streambed_roughness)
+                    job_id = 'debug'
+
+            # If running on CARC
+            else:
+                if dflow_completed == False:
+                    # Send DFLOW run to CARC
+                    p_ref = mr.run_dflow(dflow_dir, veg_file,
+                                        veg_roughness_shearres_lookup,
+                                        streambed_roughness,
+                                        dflow_run_fun=dflow_fun)
+
+                    job_id = p_ref.communicate()[0].split('.')[0]
+            if dflow_completed == False:
+                print('Job ID {0} submitted for DFLOW run {1}\n'.format(
+                        job_id, flow_idx
+                    ))
+                # Enter run start in log file
+                mr_log(log_f, 'Job ID {0} submitted for DFLOW run {1}\n'.format(
                         job_id, flow_idx
                     )
                 )
-
-            if debug:
-                job_not_finished = False
-
             else:
-                if dflow_completed == False:
-                    p = subprocess.Popen(
-                        'qstat ' + job_id, shell=True,
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                print('Job ID {0} already finished for DFLOW run {1} ... skipping\n'.format(
+                        -1, flow_idx
+                    ))
+                # Enter run start in log file
+                mr_log(log_f, 'Job ID {0} already finished for DFLOW run {1} ... skipping\n'.format(
+                        -1, flow_idx
+                    )
+                )
+
+            # check the status of the job by querying qstat; break loop when
+            # job no longer exists, giving nonzero poll() value
+            job_not_finished = True
+            while job_not_finished:
+                if debug:
+                    mr_log(
+                        log_f,
+                        'Job ID {0} not yet finished for DFLOW run {1}\n'.format(
+                            -1, flow_idx
+                        )
+                    )
+                else:
+                    mr_log(
+                        log_f,
+                        'Job ID {0} not yet finished for DFLOW run {1}\n'.format(
+                            job_id, flow_idx
+                        )
                     )
 
-                    p.communicate()
-
-                    poll = p.poll()
-                    job_not_finished = poll == 0
-
-                    time.sleep(600)
-                else:
+                if debug:
                     job_not_finished = False
-                
-        mr_log(
-            log_f, 'DFLOW run {0} finished, starting RipCAS\n'.format(
-                flow_idx
+
+                else:
+                    if dflow_completed == False:
+                        p = subprocess.Popen(
+                            'qstat ' + job_id, shell=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                        )
+
+                        p.communicate()
+
+                        poll = p.poll()
+                        job_not_finished = poll == 0
+
+                        time.sleep(600)
+                    else:
+                        job_not_finished = False
+                    
+            mr_log(
+                log_f, 'DFLOW run {0} finished, starting RipCAS\n'.format(
+                    flow_idx
+                )
             )
-        )
-        dflow_completed == True
-        mr_progress_update_entry(progressfilepath, flow_idx, 1, 0)
+            dflow_completed == True
+            mr_progress_update_entry(progressfilepath, flow_idx, 1, 0)
+        else:
+            # save "zero file" to no shear stress
+            # Create empty directory for this annual flow iteration of DFLOW
+            dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
+            mr.dflow_has_run = True
+            dflow_completed == True
+            mr_progress_update_entry(progressfilepath, flow_idx, 1, 0)
+            mr_log(
+                log_f, 'DFLOW run {0} flow, not greater than threshold. Skipping DFLOW and passing zero sheer to RipCAS\n'.format(
+                    flow_idx
+                )
+            )
+            print('DFLOW run {0} flow, not greater than threshold. Skipping DFLOW and passing zero sheer to RipCAS\n'.format(
+                    flow_idx
+                ))
 
         # Creat a directory for this annual iteration of RipCAS
         ripcas_dir = os.path.join(data_dir, 'ripcas-' + str(flow_idx))
@@ -766,16 +823,12 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
                 # the partitioned files using stitch_partitioned_output
                 # in cord/ripcas_dflow.py
                 mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
-                            ripcas_dir)
+                            ripcas_dir, flow, flood_threshold)
                 ripcas_completed == True
         # Note end of RipCAS in log file
         mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
         mr_progress_update_entry(progressfilepath, flow_idx, 1, 1)
         dflow_completed, ripcas_completed = False, False
-
-        
-        
-
     log_f.close()
 
 
