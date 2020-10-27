@@ -452,6 +452,29 @@ class ESRIAsc:
                         value = self.NODATA_value
                     f.write(str(value) + ' ')
                 f.write('\n')
+                
+    def write_zero_asc(self, write_path):
+        # replace nan with NODATA_value
+        #self.data = self.data.fillna(self.NODATA_value)
+        unflattened_data = self.unflatten()
+        with open(write_path, 'w+') as f:
+            f.write("ncols {}\n".format(self.ncols))
+            # print(self.ncols)
+            f.write("nrows {}\n".format(self.nrows))
+            # print(self.nrows)
+            f.write("xllcorner {}\n".format(self.xllcorner))
+            # print(self.xllcorner)
+            f.write("yllcorner {}\n".format(self.yllcorner))
+            # print(self.yllcorner)
+            f.write("cellsize {}\n".format(self.cellsize))
+            # print(self.cellsize)
+            f.write("NODATA_value {}\n".format(self.NODATA_value))
+            # print(self.NODATA_value)
+            for row_index in range(self.nrows):
+                for col_index in range(self.ncols):
+                    value = self.NODATA_value
+                    f.write(str(value) + ' ')
+                f.write('\n')
 
 
 

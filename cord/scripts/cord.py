@@ -182,6 +182,7 @@ def from_config(ctx, config_file, continue_cord):
         cfg['dflow_run_fun'],  #not required - None
         logfile,
         progressfile,
+        cfg['flood_threshold'],
         continue_cord,
         ctx.obj['DEBUG']
     )
@@ -350,6 +351,9 @@ def load_args_from_config(config_file):
     gen = dict(cfg['General'])
     if gen['log_f'] == u'':
         gen['log_f'] = None
+        
+    if gen['flood_threshold'] == u'':
+        gen['flood_threshold'] = None
 
     if gen['dflow_run_fun'] == u'':
         gen['dflow_run_fun'] = None
@@ -396,6 +400,9 @@ def load_args_from_config(config_file):
     gen['streambed_floodplain_roughness'] = \
         float(gen['streambed_floodplain_roughness'])
     gen['streambed_slope'] = float(gen['streambed_slope'])
+    
+    if gen['flood_threshold'] is not None:
+        gen['flood_threshold'] = float(gen['flood_threshold'])
 
     # hydroshare config options
     hs = dict(cfg['HydroShare'])

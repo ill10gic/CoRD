@@ -71,3 +71,4 @@ not_actually_output.nc
 *.conf
 fakedir
 *tmp*
+.idea/workspace.xml
