@@ -400,6 +400,9 @@ def load_args_from_config(config_file):
     gen['streambed_floodplain_roughness'] = \
         float(gen['streambed_floodplain_roughness'])
     gen['streambed_slope'] = float(gen['streambed_slope'])
+    
+    if gen['flood_threshold'] is not None:
+        gen['flood_threshold'] = float(gen['flood_threshold'])
 
     # hydroshare config options
     hs = dict(cfg['HydroShare'])

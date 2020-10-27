@@ -217,7 +217,7 @@ class ModelRun(object):
             raise RuntimeError(
                 'DFLOW must run before ripcas can be run'
             )
-        if flow > flood_threshold or flood_threshold is None:
+        if  flood_threshold is None or flow > flood_threshold:
             print ('in ripcas - flow greater, than threshhold, attempting to stitch output from dflow')
             # if os.path.exists(ripcas_directory):
 
@@ -669,7 +669,7 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
             mr.dflow_has_run = True
         if ripcas_completed:
             mr.ripcas_has_run = True
-        if flow > flood_threshold or flood_threshold is None:
+        if flood_threshold is None or flow > flood_threshold:
             # Enter information into log file
             mr_log(
                 log_f, 'flow passes threshold for idx {0} - attempting to run DFLOW\n'.format(
