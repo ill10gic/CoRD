@@ -171,6 +171,7 @@ def from_config(ctx, config_file, continue_cord):
     progressfile = 'cord_progress.log'
     modelrun_series(
         cfg['data_dir'],
+        cfg['partitioned_inputs_dir'],
         cfg['initial_vegetation_map'], #vegclass_2z.asc - default
         cfg['vegzone_map'], #zonemap_2z.asc  - default
         cfg['veg_roughness_shearres_lookup'], #veg_roughness_shearres.xlsx  - default
@@ -379,6 +380,9 @@ def load_args_from_config(config_file):
         gen['geometry_file'] = os.path.join(
             curdir, '..', 'data', 'dflow_inputs', 'DBC_geometry.xyz'
         )
+
+    if gen['partitioned_inputs_dir'] == u'':
+        raise RuntimeError('partitioned_inputs_dir must be defined in ' + config_file)
 
     if gen['peak_flows_file'] == u'':
         raise RuntimeError('PEAK_FLOWS_FILE must be defined in ' + config_file)

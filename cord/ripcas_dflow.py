@@ -83,6 +83,8 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
         (ESRIAsc) vegetation map updated with new values corresponding to
             succession rules
     """
+    print('vegetation_map')
+    print(vegetation_map)
     # Check that veg, shear, and zone maps are the right type (either string or ESRIAsc)
     if isinstance(vegetation_map, six.string_types):
         vegetation_map = ESRIAsc(vegetation_map)
@@ -193,11 +195,11 @@ def shear_mesh_to_asc(shear_nc_path, header_dict):
     grid_x, grid_y = meshgrid(x, y)
 
     # use linear interp so we don't have to install natgrid
-    print(mesh_x.shape)
-    print(mesh_y.shape)
-    print(grid_x.shape)
-    print(grid_y.shape)
-    print(mesh_shear.shape)
+    # print(mesh_x.shape)
+    # print(mesh_y.shape)
+    # print(grid_x.shape)
+    # print(grid_y.shape)
+    # print(mesh_shear.shape)
     asc_mat = griddata((mesh_x, mesh_y), mesh_shear, (grid_x, grid_y))
 
     # not sure why, but this makes it align with the original vegetation map
