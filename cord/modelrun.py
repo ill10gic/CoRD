@@ -565,7 +565,7 @@ def mr_progress_add_entry(progressfilepath,  flow_idx, dflow_completed, ripcas_c
 def mr_progress_update_entry(progressfilepath,  flow_idx, dflow_status, ripcas_status):
     print('flow_idx {}, dflow_status {}, ripcas {}'.format(flow_idx,dflow_status,ripcas_status))
     lines = open(progressfilepath).read().splitlines()
-    search to see if index exist, if it does, update the value, otherwise append
+    # search to see if index exist, if it does, update the value, otherwise append
     idx_exists = False
     for idx, line in enumerate(lines[1:]):
         line_split = re.split(r'\t+', line)
