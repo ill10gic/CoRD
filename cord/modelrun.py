@@ -19,6 +19,7 @@ import os
 import shutil
 import subprocess
 import time
+import re
 
 
 from collections import namedtuple
@@ -39,6 +40,8 @@ class ModelRun(object):
     is provided to the run_dflow method.
     """
     def __init__(self):  # , vegetation_ascii_path):
+        
+        self.partitioned_inputs_dir = None
 
         # have the boundary conditions been found?
         self.bc_converged = False
@@ -142,9 +145,12 @@ class ModelRun(object):
 
         curdir = os.path.dirname(__file__)
 
-        path_to_dflow_inputs = os.path.join(
-            curdir, 'data', 'dflow-partition'
-        )
+        # path_to_dflow_inputs = os.path.join(
+        #     curdir, 'data', 'dflow-partition'
+        # )
+        path_to_dflow_inputs = self.partitioned_inputs_dir
+        print('path_to_dflow_inputs')
+        print(path_to_dflow_inputs)
 
         shutil.copytree(path_to_dflow_inputs, dflow_run_directory)
 
@@ -209,6 +215,51 @@ class ModelRun(object):
             self.dflow_has_run = True
 
             return ret
+        
+    def run_fake_ripcas(self, zone_map_path, ripcas_required_data_path,
+                   ripcas_directory, shear_asc=None, clobber=True, flow=None, flood_threshold=None):
+        print ('in mock ripcas')
+        self.ripcas_directory = ripcas_directory
+        
+        #uncommenting this to fix the bug that was occuring
+        if os.path.isdir(ripcas_directory) is False:
+            os.mkdir(ripcas_directory) #line 273, in stitch_partitioned_output, IOError: [Errno 13] Permission denied: 'data/ripcas-0/stitched-shear.nc'
+            
+        #create empty shear_out.asc file
+        # hdr = self.vegetation_ascii.header_dict()
+        # if shear_asc is None:
+        #     shear_asc = shear_mesh_to_asc(self.dflow_shear_output, hdr)
+        # else:
+        #     assert isinstance(shear_asc, ESRIAsc),\
+        #         'shear_asc must be of type ESRIAsc if provided'
+        print('self.dflow_run_directory')
+        print(self.dflow_run_directory)
+        print(zone_map_path)
+        shear_asc = ESRIAsc(zone_map_path)
+        shear_asc.write_zero_asc(
+            os.path.join(self.dflow_run_directory, 'shear_out.asc')
+        )
+        
+        # shear_asc.write_unflattened_asc(
+        #     os.path.join(self.dflow_run_directory, 'shear_out.asc')
+        # )
+        
+        print('shear_asc')
+        print(self.dflow_run_directory + 'shear_out.asc')
+
+        output_veg_ascii = ripcas(
+            self.vegetation_ascii, zone_map_path,
+            shear_asc, ripcas_required_data_path
+        )
+
+        output_vegetation_path = os.path.join(
+            ripcas_directory, 'vegetation.asc'
+        )
+        print('output_vegetation_path')
+        print(output_vegetation_path)
+        output_veg_ascii.write_unflattened_asc(output_vegetation_path)
+
+        self.ripcas_has_run = True
 
     def run_ripcas(self, zone_map_path, ripcas_required_data_path,
                    ripcas_directory, shear_asc=None, clobber=True, flow=None, flood_threshold=None):
@@ -245,12 +296,12 @@ class ModelRun(object):
                 os.path.join(ripcas_directory, 'stitched-shear.nc')
 
             stitch_partitioned_output(partitioned_outputs, self.dflow_shear_output)
-            print ('zone_map_path: ' + zone_map_path)
-            print ('dflow_run_directory: ' + self.dflow_run_directory)
-            print ('dflow_shear_output: ' + self.dflow_shear_output)
+            # print ('zone_map_path: ' + zone_map_path)
+            # print ('dflow_run_directory: ' + self.dflow_run_directory)
+            # print ('dflow_shear_output: ' + self.dflow_shear_output)
             hdr = self.vegetation_ascii.header_dict()
-            print('hdr dict')
-            print(hdr)
+            # print('hdr dict')
+            # print(hdr)
             if shear_asc is None:
                 shear_asc = shear_mesh_to_asc(self.dflow_shear_output, hdr)
             else:
@@ -292,6 +343,13 @@ class ModelRun(object):
             shear_asc = ESRIAsc(zone_map_path).write_zero_asc(
                 os.path.join(self.dflow_run_directory, 'shear_out.asc')
             )
+            
+            shear_asc.write_unflattened_asc(
+                os.path.join(self.dflow_run_directory, 'shear_out.asc')
+            )
+            
+            print('shear_asc')
+            print(self.dflow_run_directory + 'shear_out.asc')
 
             output_veg_ascii = ripcas(
                 self.vegetation_ascii, zone_map_path,
@@ -301,6 +359,8 @@ class ModelRun(object):
             output_vegetation_path = os.path.join(
                 ripcas_directory, 'vegetation.asc'
             )
+            print('output_vegetation_path')
+            print(output_vegetation_path)
             output_veg_ascii.write_unflattened_asc(output_vegetation_path)
 
             self.ripcas_has_run = True
@@ -505,10 +565,20 @@ def mr_progress_add_entry(progressfilepath,  flow_idx, dflow_completed, ripcas_c
 def mr_progress_update_entry(progressfilepath,  flow_idx, dflow_status, ripcas_status):
     print('flow_idx {}, dflow_status {}, ripcas {}'.format(flow_idx,dflow_status,ripcas_status))
     lines = open(progressfilepath).read().splitlines()
-    if len(lines) - 1 < flow_idx + 1:
-        lines.append(str(flow_idx + 1) + '\t' + str(0) + '\t' + str(0) + '\n')
-    else:
-        lines[flow_idx + 1] = str(flow_idx) + '\t' + str(dflow_status) +'\t' + str(ripcas_status) + '\n'
+    # search to see if index exist, if it does, update the value, otherwise append
+    idx_exists = False
+    for idx, line in enumerate(lines[1:]):
+        line_split = re.split(r'\t+', line)
+        if (int(line_split[0]) == flow_idx):
+            idx_exists = True
+            line_split[1] = dflow_status
+            line_split[2] = ripcas_status
+            line_split = str(flow_idx) + '\t' + str(dflow_status) +'\t' + str(ripcas_status) + '\n'
+            lines[idx+1] = line_split
+            break
+    # append new line if no idx exists
+    if not idx_exists:
+        lines.append(str(flow_idx) + '\t' + str(dflow_status) + '\t' + str(ripcas_status) + '\n')
     open(progressfilepath, 'w').write('\n'.join(lines))
 
     
@@ -547,7 +617,7 @@ def determine_progress(progressfilepath, log_f):
     return flow_idx, dflow_completed, ripcas_completed
 
 
-def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
+def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, vegzone_map,
                     veg_roughness_shearres_lookup, peak_flows_file,
                     geometry_file, streambed_roughness,
                     streambed_floodplain_roughness, streambed_slope,
@@ -558,6 +628,7 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
 
     Arguments:
         data_dir (str): write directory for modelrun series. Must exist
+        partitioned_inputs_dir (str): directory that contains the partitioned files
         initial_vegetation_map (str): location of year zero veg map
         vegzone_map (str): vegetation zone map location
         veg_roughness_shearres_lookup (str): Excel spreadsheet containing
@@ -661,14 +732,19 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
     
 
     # Iterate through all annual peak flows
-    for flow_idx, flow in enumerate(peak_flows, start=start_flow_idx):
-        
+    for flow_idx in enumerate(peak_flows, start=start_flow_idx):
+        flow_idx = flow_idx[0]
+        flow = peak_flows[flow_idx]
         # create a ModelRun object
         mr = ModelRun()
+        mr.partitioned_inputs_dir = partitioned_inputs_dir
         if dflow_completed:
             mr.dflow_has_run = True
         if ripcas_completed:
             mr.ripcas_has_run = True
+        # Create new directory for this annual flow iteration of DFLOW
+        dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
+        mr.dflow_run_directory = dflow_dir
         if flood_threshold is None or flow > flood_threshold:
             # Enter information into log file
             mr_log(
@@ -679,6 +755,7 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
             # Run the boundary condition calculation method;
             # produces upstream flow file and downstream stage file for DFLOW to use
             if dflow_completed == False:
+                mr_progress_update_entry(progressfilepath, flow_idx, 0, 0)
                 mr.calculate_bc(
                     flow, geometry_file,
                     streambed_floodplain_roughness, streambed_slope
@@ -690,9 +767,18 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
                         flow_idx
                     )
                 )
+            else:
+                # Get veg map
+                if flow_idx == 0:
+                    veg_file = initial_vegetation_map
+                else:
+                    # Take RipCAS outputs as DFLOW inputs from previous timestep
+                    veg_file = os.path.join(
+                        data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
+                    )
+                mr.vegetation_ascii = ESRIAsc(veg_file)
 
-                # Create new directory for this annual flow iteration of DFLOW
-                dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
+
 
             # Get veg map
             if flow_idx == 0:
@@ -799,6 +885,20 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
             print('DFLOW run {0} flow, not greater than threshold. Skipping DFLOW and passing zero sheer to RipCAS\n'.format(
                     flow_idx
                 ))
+            print('DFLOW run {0} flow, creating empty DFLOW directory for CoRD\n'.format(
+                    flow_idx
+                ))
+            # Create new directory for this annual flow iteration of DFLOW
+            dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
+            mr.dflow_run_directory = dflow_dir
+            if os.path.isdir(dflow_dir) == False:
+                os.mkdir(dflow_dir)
+                
+            # set veg map to last one:
+            veg_file = os.path.join(
+                    data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
+                )
+            mr.vegetation_ascii = ESRIAsc(veg_file)
 
         # Creat a directory for this annual iteration of RipCAS
         ripcas_dir = os.path.join(data_dir, 'ripcas-' + str(flow_idx))
@@ -810,6 +910,8 @@ def modelrun_series(data_dir, initial_vegetation_map, vegzone_map,
             ))
             if ripcas_completed == False:
                 p = _join_data_dir('shear_out.asc')
+                mr.run_fake_ripcas(os.path.join(inputs_dir, 'vegclass_2z.asc'), veg_roughness_shearres_lookup,
+                            ripcas_dir, flow, flood_threshold)
                 # mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
                 #             ripcas_dir, shear_asc=ESRIAsc(p))
                 # mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
