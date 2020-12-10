@@ -19,6 +19,7 @@ import os
 import shutil
 import subprocess
 import time
+import re
 
 
 from collections import namedtuple
@@ -564,10 +565,20 @@ def mr_progress_add_entry(progressfilepath,  flow_idx, dflow_completed, ripcas_c
 def mr_progress_update_entry(progressfilepath,  flow_idx, dflow_status, ripcas_status):
     print('flow_idx {}, dflow_status {}, ripcas {}'.format(flow_idx,dflow_status,ripcas_status))
     lines = open(progressfilepath).read().splitlines()
-    if len(lines) - 1 < flow_idx + 1:
-        lines.append(str(flow_idx + 1) + '\t' + str(0) + '\t' + str(0) + '\n')
-    else:
-        lines[flow_idx + 1] = str(flow_idx) + '\t' + str(dflow_status) +'\t' + str(ripcas_status) + '\n'
+    search to see if index exist, if it does, update the value, otherwise append
+    idx_exists = False
+    for idx, line in enumerate(lines[1:]):
+        line_split = re.split(r'\t+', line)
+        if (int(line_split[0]) == flow_idx):
+            idx_exists = True
+            line_split[1] = dflow_status
+            line_split[2] = ripcas_status
+            line_split = str(flow_idx) + '\t' + str(dflow_status) +'\t' + str(ripcas_status) + '\n'
+            lines[idx+1] = line_split
+            break
+    # append new line if no idx exists
+    if not idx_exists:
+        lines.append(str(flow_idx) + '\t' + str(dflow_status) + '\t' + str(ripcas_status) + '\n')
     open(progressfilepath, 'w').write('\n'.join(lines))
 
     
@@ -721,8 +732,9 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
     
 
     # Iterate through all annual peak flows
-    for flow_idx, flow in enumerate(peak_flows, start=start_flow_idx):
-        
+    for flow_idx in enumerate(peak_flows, start=start_flow_idx):
+        flow_idx = flow_idx[0]
+        flow = peak_flows[flow_idx]
         # create a ModelRun object
         mr = ModelRun()
         mr.partitioned_inputs_dir = partitioned_inputs_dir
@@ -730,6 +742,9 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
             mr.dflow_has_run = True
         if ripcas_completed:
             mr.ripcas_has_run = True
+        # Create new directory for this annual flow iteration of DFLOW
+        dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
+        mr.dflow_run_directory = dflow_dir
         if flood_threshold is None or flow > flood_threshold:
             # Enter information into log file
             mr_log(
@@ -740,6 +755,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
             # Run the boundary condition calculation method;
             # produces upstream flow file and downstream stage file for DFLOW to use
             if dflow_completed == False:
+                mr_progress_update_entry(progressfilepath, flow_idx, 0, 0)
                 mr.calculate_bc(
                     flow, geometry_file,
                     streambed_floodplain_roughness, streambed_slope
@@ -751,9 +767,18 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
                         flow_idx
                     )
                 )
+            else:
+                # Get veg map
+                if flow_idx == 0:
+                    veg_file = initial_vegetation_map
+                else:
+                    # Take RipCAS outputs as DFLOW inputs from previous timestep
+                    veg_file = os.path.join(
+                        data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
+                    )
+                mr.vegetation_ascii = ESRIAsc(veg_file)
 
-                # Create new directory for this annual flow iteration of DFLOW
-                dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
+
 
             # Get veg map
             if flow_idx == 0:

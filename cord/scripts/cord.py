@@ -164,7 +164,7 @@ def _run_ripcas(dflow_run_dir='/users/maturner/partition-run-dev'):
 @click.pass_context
 def from_config(ctx, config_file, continue_cord):
     """Run CoRD with params from <config_file>"""
-
+    # input('Press a button to continue')
     cfg = load_args_from_config(config_file)
     ctxlog = ctx.obj['LOGFILE']
     logfile = ctxlog if ctxlog is not None else cfg['log_f']
