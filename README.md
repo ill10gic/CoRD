@@ -33,14 +33,14 @@ source venv/bin/activate
 pip install --editable .
 ```
 
-## Check installation by running unit tests
+## Check installation by running unit tests*
 
 To check that all is well, try running the unit tests:
 
 ```bash
 nosetests -v
 ```
-
+*TODO: UNIT TESTS ARE CURRENTLY STILL UNDER DEVELOPMENT
 
 The output should be
 

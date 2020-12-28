@@ -824,6 +824,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
                         -1, flow_idx
                     )
                 )
+                job_not_finished = False
 
             # check the status of the job by querying qstat; break loop when
             # job no longer exists, giving nonzero poll() value
