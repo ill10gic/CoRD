@@ -806,6 +806,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
                                         dflow_run_fun=dflow_fun)
 
                     job_id = p_ref.communicate()[0].split('.')[0]
+            job_not_finished = True
             if dflow_completed == False:
                 print('Job ID {0} submitted for DFLOW run {1}\n'.format(
                         job_id, flow_idx
@@ -828,7 +829,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
 
             # check the status of the job by querying qstat; break loop when
             # job no longer exists, giving nonzero poll() value
-            job_not_finished = True
+
             while job_not_finished:
                 if debug:
                     mr_log(
