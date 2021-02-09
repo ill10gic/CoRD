@@ -262,13 +262,17 @@ class ModelRun(object):
         self.ripcas_has_run = True
 
     def run_ripcas(self, zone_map_path, ripcas_required_data_path,
-                   ripcas_directory, shear_asc=None, clobber=True, flow=None, flood_threshold=None):
+                   ripcas_directory,  flow, flood_threshold):
         
         if not self.dflow_has_run:
             raise RuntimeError(
                 'DFLOW must run before ripcas can be run'
             )
         if  flood_threshold is None or flow > flood_threshold:
+            print('flow')
+            print(flow)
+            print('flood_threshold')
+            print(flood_threshold)
             print ('in ripcas - flow greater, than threshhold, attempting to stitch output from dflow')
             # if os.path.exists(ripcas_directory):
 
@@ -296,17 +300,20 @@ class ModelRun(object):
                 os.path.join(ripcas_directory, 'stitched-shear.nc')
 
             stitch_partitioned_output(partitioned_outputs, self.dflow_shear_output)
-            # print ('zone_map_path: ' + zone_map_path)
-            # print ('dflow_run_directory: ' + self.dflow_run_directory)
-            # print ('dflow_shear_output: ' + self.dflow_shear_output)
+            print ('zone_map_path: ' + zone_map_path)
+            print ('dflow_run_directory: ' + self.dflow_run_directory)
+            print ('dflow_shear_output: ' + self.dflow_shear_output)
             hdr = self.vegetation_ascii.header_dict()
-            # print('hdr dict')
-            # print(hdr)
-            if shear_asc is None:
-                shear_asc = shear_mesh_to_asc(self.dflow_shear_output, hdr)
-            else:
-                assert isinstance(shear_asc, ESRIAsc),\
-                    'shear_asc must be of type ESRIAsc if provided'
+            print('hdr dict')
+            print(hdr)
+            # print('shear_asc')
+            # print(shear_asc)
+            
+            #if shear_asc is None:
+            shear_asc = shear_mesh_to_asc(self.dflow_shear_output, hdr)
+            #else:
+            #    assert isinstance(shear_asc, ESRIAsc),\
+            #        'shear_asc must be of type ESRIAsc if provided'
 
             shear_asc.write_unflattened_asc(
                 os.path.join(self.dflow_run_directory, 'shear_out.asc')
@@ -340,9 +347,13 @@ class ModelRun(object):
             # else:
             #     assert isinstance(shear_asc, ESRIAsc),\
             #         'shear_asc must be of type ESRIAsc if provided'
-            shear_asc = ESRIAsc(zone_map_path).write_zero_asc(
+            print('zone_map_path: ' + zone_map_path)
+            shear_asc = ESRIAsc(zone_map_path)
+            shear_asc.write_zero_asc(
                 os.path.join(self.dflow_run_directory, 'shear_out.asc')
             )
+            print('shear_asc')
+            print(shear_asc)
             
             shear_asc.write_unflattened_asc(
                 os.path.join(self.dflow_run_directory, 'shear_out.asc')
@@ -806,6 +817,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
                                         dflow_run_fun=dflow_fun)
 
                     job_id = p_ref.communicate()[0].split('.')[0]
+            job_not_finished = True
             if dflow_completed == False:
                 print('Job ID {0} submitted for DFLOW run {1}\n'.format(
                         job_id, flow_idx
@@ -828,7 +840,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
 
             # check the status of the job by querying qstat; break loop when
             # job no longer exists, giving nonzero poll() value
-            job_not_finished = True
+
             while job_not_finished:
                 if debug:
                     mr_log(
@@ -877,7 +889,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
             dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
             mr.dflow_has_run = True
             dflow_completed == True
-            mr_progress_update_entry(progressfilepath, flow_idx, 1, 0)
+            
             mr_log(
                 log_f, 'DFLOW run {0} flow, not greater than threshold. Skipping DFLOW and passing zero sheer to RipCAS\n'.format(
                     flow_idx
@@ -900,6 +912,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
                     data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
                 )
             mr.vegetation_ascii = ESRIAsc(veg_file)
+            mr_progress_update_entry(progressfilepath, flow_idx, 1, 0)
 
         # Creat a directory for this annual iteration of RipCAS
         ripcas_dir = os.path.join(data_dir, 'ripcas-' + str(flow_idx))
