@@ -470,11 +470,12 @@ class ESRIAsc:
             # print(self.yllcorner)
             f.write("cellsize {}\n".format(self.cellsize))
             # print(self.cellsize)
+            # TODO - examine if NODATA value is (probably) incorrect, should use zero?
             f.write("NODATA_value {}\n".format(self.NODATA_value))
             # print(self.NODATA_value)
             for row_index in range(self.nrows):
                 for col_index in range(self.ncols):
-                    value = self.NODATA_value
+                    value = 0.000001  # sufficiently small
                     f.write(str(value) + ' ')
                 f.write('\n')
 

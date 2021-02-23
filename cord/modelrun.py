@@ -884,18 +884,18 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
             dflow_completed == True
             mr_progress_update_entry(progressfilepath, flow_idx, 1, 0)
         else:
-            # save "zero file" to no shear stress
+            # save "zero file" for no shear stress
             # Create empty directory for this annual flow iteration of DFLOW
             dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
             mr.dflow_has_run = True
             dflow_completed == True
             
             mr_log(
-                log_f, 'DFLOW run {0} flow, not greater than threshold. Skipping DFLOW and passing zero sheer to RipCAS\n'.format(
+                log_f, 'DFLOW run {0} flow, not greater than threshold. Skipping DFLOW and passing zero shear to RipCAS\n'.format(
                     flow_idx
                 )
             )
-            print('DFLOW run {0} flow, not greater than threshold. Skipping DFLOW and passing zero sheer to RipCAS\n'.format(
+            print('DFLOW run {0} flow, not greater than threshold. Skipping DFLOW and passing zero shear to RipCAS\n'.format(
                     flow_idx
                 ))
             print('DFLOW run {0} flow, creating empty DFLOW directory for CoRD\n'.format(
@@ -908,6 +908,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
                 os.mkdir(dflow_dir)
                 
             # set veg map to last one:
+            # TODO - check if flow_idx == 0, if so use initial vegmap
             veg_file = os.path.join(
                     data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
                 )
