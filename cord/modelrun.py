@@ -354,10 +354,11 @@ class ModelRun(object):
             )
             print('shear_asc')
             print(shear_asc)
-            
-            shear_asc.write_unflattened_asc(
-                os.path.join(self.dflow_run_directory, 'shear_out.asc')
-            )
+
+            # TODO - possibly overwriting zero_shear_asc here?
+            # shear_asc.write_unflattened_asc(
+            #     os.path.join(self.dflow_run_directory, 'shear_out.asc')
+            # )
             
             print('shear_asc')
             print(self.dflow_run_directory + 'shear_out.asc')
