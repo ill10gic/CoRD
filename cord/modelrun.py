@@ -910,7 +910,12 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
                 
             # set veg map to last one:
             # TODO - check if flow_idx == 0, if so use initial vegmap
-            veg_file = os.path.join(
+            # Get veg map
+            if flow_idx == 0:
+                veg_file = initial_vegetation_map
+            else:
+                # Take RipCAS outputs as DFLOW inputs from previous timestep
+                veg_file = os.path.join(
                     data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
                 )
             mr.vegetation_ascii = ESRIAsc(veg_file)
