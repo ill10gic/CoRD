@@ -83,8 +83,11 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
         (ESRIAsc) vegetation map updated with new values corresponding to
             succession rules
     """
+    print('in ripcas')
     print('vegetation_map')
     print(vegetation_map)
+    print('zone_map')
+    print(zone_map)
     # Check that veg, shear, and zone maps are the right type (either string or ESRIAsc)
     if isinstance(vegetation_map, six.string_types):
         vegetation_map = ESRIAsc(vegetation_map)

@@ -268,6 +268,11 @@ class ModelRun(object):
             raise RuntimeError(
                 'DFLOW must run before ripcas can be run'
             )
+        print('in run_ripcas')
+        print('vegetation_ascii')
+        print(self.vegetation_ascii)
+        print('zone_map_path')
+        print(zone_map_path)
         if  flood_threshold is None or flow > flood_threshold:
             print('flow')
             print(flow)
@@ -918,6 +923,13 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
                 veg_file = os.path.join(
                     data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
                 )
+            print('flow_idx')
+            print(flow_idx)
+            print('in main loop - dflow below threshold')
+            print('veg_file')
+            print(veg_file)
+            print('vegzone_map')
+            print(vegzone_map)
             mr.vegetation_ascii = ESRIAsc(veg_file)
             mr_progress_update_entry(progressfilepath, flow_idx, 1, 0)
 
@@ -945,6 +957,13 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
                 # need to be updated to build a shear_asc by stitching together
                 # the partitioned files using stitch_partitioned_output
                 # in cord/ripcas_dflow.py
+                print('flow_idx')
+                print(flow_idx)
+                print('getting ready for run_ripcas')
+                print('veg_file')
+                print(veg_file)
+                print('vegzone_map')
+                print(vegzone_map)
                 mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
                             ripcas_dir, flow, flood_threshold)
                 ripcas_completed == True
