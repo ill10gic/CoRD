@@ -273,7 +273,7 @@ class ModelRun(object):
         print(self.vegetation_ascii)
         print('zone_map_path')
         print(zone_map_path)
-        if  flood_threshold is None or flow > flood_threshold:
+        if flood_threshold is None or flow > flood_threshold:
             print('flow')
             print(flow)
             print('flood_threshold')
@@ -354,17 +354,11 @@ class ModelRun(object):
             #         'shear_asc must be of type ESRIAsc if provided'
             print('zone_map_path: ' + zone_map_path)
             shear_asc = ESRIAsc(zone_map_path)
+            shear_asc_path = os.path.join(self.dflow_run_directory, 'shear_out.asc')
             shear_asc.write_zero_asc(
-                os.path.join(self.dflow_run_directory, 'shear_out.asc')
+                shear_asc_path
             )
-            print('shear_asc')
-            print(shear_asc)
-
-            # TODO - possibly overwriting zero_shear_asc here?
-            # shear_asc.write_unflattened_asc(
-            #     os.path.join(self.dflow_run_directory, 'shear_out.asc')
-            # )
-            
+            shear_asc = ESRIAsc(shear_asc_path)
             print('shear_asc')
             print(self.dflow_run_directory + 'shear_out.asc')
 
