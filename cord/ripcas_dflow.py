@@ -83,8 +83,11 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
         (ESRIAsc) vegetation map updated with new values corresponding to
             succession rules
     """
+    print('in ripcas')
     print('vegetation_map')
     print(vegetation_map)
+    print('zone_map')
+    print(zone_map)
     # Check that veg, shear, and zone maps are the right type (either string or ESRIAsc)
     if isinstance(vegetation_map, six.string_types):
         vegetation_map = ESRIAsc(vegetation_map)
@@ -470,11 +473,12 @@ class ESRIAsc:
             # print(self.yllcorner)
             f.write("cellsize {}\n".format(self.cellsize))
             # print(self.cellsize)
+            # TODO - examine if NODATA value is (probably) incorrect, should use zero?
             f.write("NODATA_value {}\n".format(self.NODATA_value))
             # print(self.NODATA_value)
             for row_index in range(self.nrows):
                 for col_index in range(self.ncols):
-                    value = self.NODATA_value
+                    value = 0.000001  # sufficiently small
                     f.write(str(value) + ' ')
                 f.write('\n')
 

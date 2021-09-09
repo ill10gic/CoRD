@@ -268,7 +268,12 @@ class ModelRun(object):
             raise RuntimeError(
                 'DFLOW must run before ripcas can be run'
             )
-        if  flood_threshold is None or flow > flood_threshold:
+        print('in run_ripcas')
+        print('vegetation_ascii')
+        print(self.vegetation_ascii)
+        print('zone_map_path')
+        print(zone_map_path)
+        if flood_threshold is None or flow > flood_threshold:
             print('flow')
             print(flow)
             print('flood_threshold')
@@ -349,16 +354,11 @@ class ModelRun(object):
             #         'shear_asc must be of type ESRIAsc if provided'
             print('zone_map_path: ' + zone_map_path)
             shear_asc = ESRIAsc(zone_map_path)
+            shear_asc_path = os.path.join(self.dflow_run_directory, 'shear_out.asc')
             shear_asc.write_zero_asc(
-                os.path.join(self.dflow_run_directory, 'shear_out.asc')
+                shear_asc_path
             )
-            print('shear_asc')
-            print(shear_asc)
-            
-            shear_asc.write_unflattened_asc(
-                os.path.join(self.dflow_run_directory, 'shear_out.asc')
-            )
-            
+            shear_asc = ESRIAsc(shear_asc_path)
             print('shear_asc')
             print(self.dflow_run_directory + 'shear_out.asc')
 
@@ -884,18 +884,18 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
             dflow_completed == True
             mr_progress_update_entry(progressfilepath, flow_idx, 1, 0)
         else:
-            # save "zero file" to no shear stress
+            # save "zero file" for no shear stress
             # Create empty directory for this annual flow iteration of DFLOW
             dflow_dir = os.path.join(data_dir, 'dflow-' + str(flow_idx))
             mr.dflow_has_run = True
             dflow_completed == True
             
             mr_log(
-                log_f, 'DFLOW run {0} flow, not greater than threshold. Skipping DFLOW and passing zero sheer to RipCAS\n'.format(
+                log_f, 'DFLOW run {0} flow, not greater than threshold. Skipping DFLOW and passing zero shear to RipCAS\n'.format(
                     flow_idx
                 )
             )
-            print('DFLOW run {0} flow, not greater than threshold. Skipping DFLOW and passing zero sheer to RipCAS\n'.format(
+            print('DFLOW run {0} flow, not greater than threshold. Skipping DFLOW and passing zero shear to RipCAS\n'.format(
                     flow_idx
                 ))
             print('DFLOW run {0} flow, creating empty DFLOW directory for CoRD\n'.format(
@@ -908,9 +908,22 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
                 os.mkdir(dflow_dir)
                 
             # set veg map to last one:
-            veg_file = os.path.join(
+            # TODO - check if flow_idx == 0, if so use initial vegmap
+            # Get veg map
+            if flow_idx == 0:
+                veg_file = initial_vegetation_map
+            else:
+                # Take RipCAS outputs as DFLOW inputs from previous timestep
+                veg_file = os.path.join(
                     data_dir, 'ripcas-' + str(flow_idx - 1), 'vegetation.asc'
                 )
+            print('flow_idx')
+            print(flow_idx)
+            print('in main loop - dflow below threshold')
+            print('veg_file')
+            print(veg_file)
+            print('vegzone_map')
+            print(vegzone_map)
             mr.vegetation_ascii = ESRIAsc(veg_file)
             mr_progress_update_entry(progressfilepath, flow_idx, 1, 0)
 
@@ -938,6 +951,13 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
                 # need to be updated to build a shear_asc by stitching together
                 # the partitioned files using stitch_partitioned_output
                 # in cord/ripcas_dflow.py
+                print('flow_idx')
+                print(flow_idx)
+                print('getting ready for run_ripcas')
+                print('veg_file')
+                print(veg_file)
+                print('vegzone_map')
+                print(vegzone_map)
                 mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
                             ripcas_dir, flow, flood_threshold)
                 ripcas_completed == True
