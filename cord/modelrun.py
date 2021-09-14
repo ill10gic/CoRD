@@ -571,7 +571,17 @@ def mr_progress_add_entry(progressfilepath,  flow_idx, dflow_completed, ripcas_c
     # file.flush()
     # os.fsync(file.fileno())
     
+def erase_dflow_files(dflow_run_directory):
+    files_to_erase = os.listdir(dflow_run_directory)
+    files_to_erase.remove('shear_out.asc') # take out the one file we care about and remove everything else
+    for f in files_to_erase:
+        if os.path.isfile(os.path.join(dflow_run_directory, f)):
+            os.remove(os.path.join(dflow_run_directory, f))
 
+    dflow_output_dir = os.path.join(dflow_run_directory, 'DFM_OUTPUT_base')
+
+    if os.path.isdir(dflow_output_dir):
+        shutil.rmtree(dflow_output_dir)
 
 def mr_progress_update_entry(progressfilepath,  flow_idx, dflow_status, ripcas_status):
     print('flow_idx {}, dflow_status {}, ripcas {}'.format(flow_idx,dflow_status,ripcas_status))
@@ -628,11 +638,23 @@ def determine_progress(progressfilepath, log_f):
     return flow_idx, dflow_completed, ripcas_completed
 
 
-def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, vegzone_map,
-                    veg_roughness_shearres_lookup, peak_flows_file,
-                    geometry_file, streambed_roughness,
-                    streambed_floodplain_roughness, streambed_slope,
-                    dflow_run_fun=None, log_f=None, progressfilepath='cord_progress.log', flood_threshold=None, continue_cord = False, debug=False):
+def modelrun_series(data_dir,
+                    partitioned_inputs_dir,
+                    initial_vegetation_map,
+                    vegzone_map,
+                    veg_roughness_shearres_lookup,
+                    peak_flows_file,
+                    geometry_file,
+                    streambed_roughness,
+                    streambed_floodplain_roughness,
+                    streambed_slope,
+                    dflow_run_fun=None,
+                    log_f=None,
+                    progressfilepath='cord_progress.log',
+                    flood_threshold=None,
+                    continue_cord=False,
+                    erase_dflow_files=True,
+                    debug=False):
     '''
     Run a series of flow and succession models with peak flows given in
     peak_flows_file.
@@ -664,6 +686,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
         progressfilepath: the file path to the progress file for cord operations
         flood_threshold: threshold if specified, will skip the current iteration of dflow and pass a "0 file" to ripcas so veg will not be affected by shear stress
         continue_cord: determines whether cord will continue from the progress in the file at progressfilepath.
+        erase_dflow_files: # erases dflow model files after dflow completes except stitched-shear.nc and vegetation.asc to save disk space
         debug (bool): whether or not to run in debug mode. If running in debug
             mode, each DFLOW run returns fake data and
             each RipCAS run takes cord/data/shear_out.asc as input
@@ -690,9 +713,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
         first_char = data_dir[0]
         root_log_f = first_char if first_char != '/' else ''
         root_log_f += data_dir[1:].replace('/', '-')
-
         log_f = open(root_log_f + '.log', 'w')
-
     else:
         log_f = open(log_f, 'w')
         
@@ -739,8 +760,6 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
     with open(roughness_slope_path, 'w') as f:
         f.write('roughness\tslope\n')
         f.write('%s\t%s\n' % (streambed_roughness, streambed_slope))
-        
-    
 
     # Iterate through all annual peak flows
     for flow_idx in enumerate(peak_flows, start=start_flow_idx):
@@ -964,6 +983,9 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
         # Note end of RipCAS in log file
         mr_log(log_f, 'RipCAS run {0} finished\n'.format(flow_idx))
         mr_progress_update_entry(progressfilepath, flow_idx, 1, 1)
+        # erase dflow files/folders in current dflow directory except shear_out.asc
+        if erase_dflow_files is True:
+            erase_dflow_files(mr.dflow_run_directory)
         dflow_completed, ripcas_completed = False, False
     log_f.close()
 
