@@ -717,7 +717,13 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
     with open(peak_flows_file, 'r') as f:
         l0 = f.readline().strip()
         assert l0 == 'Peak.Flood', '{} not Peak.Flood'.format(l0)
-        peak_flows = [float(l.strip()) for l in f.readlines()]
+        peak_flows = []
+        lines = f.readlines()
+        i = 0
+        for line in lines:
+            print("flow #{} - PeakValue: {}".format(i, line))
+            peak_flows.append(float(line))
+            i += 1
 
     # create a directory for global inputs
     inputs_dir = os.path.join(data_dir, 'inputs')
