@@ -59,7 +59,7 @@ def ripcas_with_dflow_io(vegetation_map, zone_map, streambed_roughness,
     )
 
 
-def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
+def ripcas(vegetation_map, zone_map, hbfl_map, shear_map, ripcas_required_data):
     """
     Simple version of the CASiMiR model for vegetation succession. Before the
     model is run, we check that all the unique values from vegetation_map are
@@ -72,6 +72,8 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
             representation of the vegetation map
         zone_map (str or ESRIAsc): location on disk or ESRIAsc representation
             of the zone map.
+        hbfl_map (str or ESRIAsc): location on disk or ESRIAsc representation
+            of the hbfl map.
         shear_map (str or ESRIAsc): location on disk or ESRIAsc representation
             of the shear stress map
         ripcas_required_data (str): Excel spreadsheet of data needed for
@@ -88,6 +90,8 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
     print(vegetation_map)
     print('zone_map')
     print(zone_map)
+    print('hbfl_map')
+    print(hbfl_map)
     # Check that veg, shear, and zone maps are the right type (either string or ESRIAsc)
     if isinstance(vegetation_map, six.string_types):
         vegetation_map = ESRIAsc(vegetation_map)
@@ -101,6 +105,10 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
 
     if isinstance(zone_map, six.string_types):
         zone_map = ESRIAsc(zone_map)
+
+    if isinstance(hbfl_map, six.string_types):
+        hbfl_map = ESRIAsc(hbfl_map)
+
     elif not isinstance(zone_map, ESRIAsc):
         raise TypeError('zone_map must be type str of ESRIAsc, not ' +
                         str(type(zone_map)))
@@ -114,6 +122,7 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
         assert 'shear_resis' in cas_df
 
         shear_resistance_dict = dict(
+            # TODO verify this is the "2nd instance of Code column" I.E. zero indexed
             zip(cas_df['Code.1'], cas_df['shear_resis'])
         )
 
@@ -138,14 +147,15 @@ def ripcas(vegetation_map, zone_map, shear_map, ripcas_required_data):
             )
 
             # set reset to true if shear is over threshold
-            veg_needs_reset = (
+            veg_needs_reset = ( # TODO no change needed here
                 is_not_nodata and
-                shear_map.data[idx] > shear_resistance_dict[veg_val]
+                shear_map.data[idx] > shear_resistance_dict[veg_val] # TODO where do these originate or are read from (files)?
+                # TODO HBFL is "old zone map", will use a new Q Zone in addition
             )
 
             if veg_needs_reset:
                 # reset vegetation to age zero with veg type appropriate to zone
-                ret_veg_map.data[idx] = zone_map.data[idx]
+                ret_veg_map.data[idx] = zone_map.data[idx] # TODO - this line is a problem 
 
             # whether or not the vegetation was destroyed, age by one
             if is_not_nodata:
