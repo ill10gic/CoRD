@@ -8,6 +8,7 @@ Date:
     9 May 2016
 """
 import copy
+from builtins import RuntimeError, range
 import numpy as np
 import re
 import six
@@ -125,6 +126,7 @@ def ripcas(vegetation_map, zone_map, hbfl_map, shear_map, ripcas_required_data):
             # TODO verify this is the "2nd instance of Code column" I.E. zero indexed
             zip(cas_df['Code.1'], cas_df['shear_resis'])
         )
+        
 
     else:
         raise TypeError('shear_resistance_dict must be type str')
@@ -151,11 +153,13 @@ def ripcas(vegetation_map, zone_map, hbfl_map, shear_map, ripcas_required_data):
                 is_not_nodata and
                 shear_map.data[idx] > shear_resistance_dict[veg_val] # TODO where do these originate or are read from (files)?
                 # TODO HBFL is "old zone map", will use a new Q Zone in addition
+                
             )
 
             if veg_needs_reset:
                 # reset vegetation to age zero with veg type appropriate to zone
-                ret_veg_map.data[idx] = zone_map.data[idx] # TODO - this line is a problem 
+                # ret_veg_map.data[idx] = zone_map.data[idx] # TODO - this line is a problem 
+                ret_veg_map.data[idx] = determine_veg_reset_value(zone_map.data[idx], hbfl_map.data[idx], vegetation_map.data[idx], cas_df)
 
             # whether or not the vegetation was destroyed, age by one
             if is_not_nodata:
@@ -163,6 +167,37 @@ def ripcas(vegetation_map, zone_map, hbfl_map, shear_map, ripcas_required_data):
 
     return ret_veg_map
 
+def determine_veg_reset_value(zone_map_value, hbfl_map_value, vegetation_map_value, ripcas_excel_dataframe):
+    """ Uses recruitment rules to determine reset value for vegatation code
+
+    Args:
+        zone_map_value (number): Q Zone map value of the current location being processed in recruitment rules. 
+        hbfl_map_value (number): HBFL zone map value of the current location being processed in recruitment rules
+        vegetation_map_value (number): previous iteration's vegetation value of the current location being processed in recruitment rules
+        ripcas_excel_dataframe (dataframe): all the recruitment rules and variables from the excel spreadsheet. Values are associate with vegetation succession model 
+    Returns:
+        (number) the reset vegetation code determined by the rule set
+    """
+    # get the dictionary of vegetation codes from the dataframe
+    condition_number_column = ripcas_excel_dataframe["Condition"]
+    q_zone_map_column = ripcas_excel_dataframe["Q_zone_map"]
+    hbfl_zone_map_column = ripcas_excel_dataframe["HBFL_zone_map"]
+    veg_input_map_min_column = ripcas_excel_dataframe["veg_input_map_min"]
+    veg_input_map_max_column = ripcas_excel_dataframe["veg_input_map_max"]
+    vegetation_reset_value_column = ripcas_excel_dataframe["vegetation_reset_value"]    
+    
+    for i in range(1, 25):  # TODO: set this to figure out the number of conditions dynamically
+        if (zone_map_value == q_zone_map_column.iloc[i] and
+            hbfl_map_value == hbfl_zone_map_column.iloc[i] and
+            vegetation_map_value >= veg_input_map_min_column.iloc[i] and 
+            vegetation_map_value <= veg_input_map_max_column.iloc[i]):
+            return vegetation_reset_value_column.iloc[i]
+    
+    # if there's no value found to return, throw an error:
+    raise RuntimeError('Veg reset value not found with given rules')
+    
+    
+    
 
 def shear_mesh_to_asc(shear_nc_path, header_dict):
     """
