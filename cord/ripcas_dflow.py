@@ -8,7 +8,7 @@ Date:
     9 May 2016
 """
 import copy
-from builtins import RuntimeError, range
+from builtins import RuntimeError, float, int, range
 import numpy as np
 import re
 import six
@@ -119,8 +119,16 @@ def ripcas(vegetation_map, zone_map, hbfl_map, shear_map, ripcas_required_data):
         cas_df = read_excel(ripcas_required_data)
 
         # sanity check to make sure our lookup is correct
+        #vegetation and shear stress columns
         assert 'Code.1' in cas_df  # TODO generalize later
         assert 'shear_resis' in cas_df
+        
+        # succession ruleset columns
+        assert "Q_zone_map" in cas_df
+        assert "HBFL_zone_map" in cas_df
+        assert "veg_input_map_min" in cas_df
+        assert "veg_input_map_max" in cas_df
+        assert "vegetation_reset_value" in cas_df
 
         shear_resistance_dict = dict(
             # TODO verify this is the "2nd instance of Code column" I.E. zero indexed
@@ -179,14 +187,15 @@ def determine_veg_reset_value(zone_map_value, hbfl_map_value, vegetation_map_val
         (number) the reset vegetation code determined by the rule set
     """
     # get the dictionary of vegetation codes from the dataframe
-    condition_number_column = ripcas_excel_dataframe["Condition"]
+    #condition_number_column = ripcas_excel_dataframe["Condition"]
     q_zone_map_column = ripcas_excel_dataframe["Q_zone_map"]
     hbfl_zone_map_column = ripcas_excel_dataframe["HBFL_zone_map"]
     veg_input_map_min_column = ripcas_excel_dataframe["veg_input_map_min"]
     veg_input_map_max_column = ripcas_excel_dataframe["veg_input_map_max"]
-    vegetation_reset_value_column = ripcas_excel_dataframe["vegetation_reset_value"]    
+    vegetation_reset_value_column = ripcas_excel_dataframe["vegetation_reset_value"]
     
-    for i in range(1, 25):  # TODO: set this to figure out the number of conditions dynamically
+    # this is actually zero indexed - it skips the header
+    for i in range(0, 25):  # TODO: set this to figure out the number of conditions dynamically
         if (zone_map_value == q_zone_map_column.iloc[i] and
             hbfl_map_value == hbfl_zone_map_column.iloc[i] and
             vegetation_map_value >= veg_input_map_min_column.iloc[i] and 
