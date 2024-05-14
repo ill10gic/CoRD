@@ -1,4 +1,5 @@
  cord/data/dflow_inputs/
+ .vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
