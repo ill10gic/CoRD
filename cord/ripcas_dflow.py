@@ -8,7 +8,7 @@ Date:
     9 May 2016
 """
 import copy
-from builtins import RuntimeError, float, int, range
+# from builtins import RuntimeError, float, int, range
 import numpy as np
 import re
 import six
@@ -385,7 +385,7 @@ def veg2n(veg_map, ripcas_required_data, streambed_roughness):
     """
     assert isinstance(veg_map, ESRIAsc), \
         "veg_map must be an instance of ESRIAsc"
-
+    print('got here in veg2n start')
     cas_df = read_excel(ripcas_required_data)
     veg2n_dict = dict(
         zip(cas_df['Code.1'], cas_df['n_val'])
@@ -395,7 +395,7 @@ def veg2n(veg_map, ripcas_required_data, streambed_roughness):
 
     ret = copy.deepcopy(veg_map)
     ret.data = veg_map.data.replace(veg2n_dict)
-
+    print('got here in veg2n')
     return ret
 
 

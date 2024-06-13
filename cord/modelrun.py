@@ -152,7 +152,11 @@ class ModelRun(object):
         print('path_to_dflow_inputs')
         print(path_to_dflow_inputs)
 
-        shutil.copytree(path_to_dflow_inputs, dflow_run_directory)
+        # shutil.copytree(path_to_dflow_inputs, dflow_run_directory)
+
+        os.system('cp -R {0} {1}'.format(path_to_dflow_inputs, dflow_run_directory))
+	
+        print('got past copy')
 
         # self.dflow_shear_output =\
             # os.path.join(dflow_run_directory,
@@ -168,21 +172,34 @@ class ModelRun(object):
 
         self.upstream_bc.write(bc_up_path)
         self.downstream_bc.write(bc_down_path)
-
+        print('got past copying bcs')
         self.vegetation_ascii = ESRIAsc(vegetation_map)
-
+        print('created veg ascii')
+    
         roughness_path = os.path.join(dflow_run_directory, 'n.pol')
+        print('roughness path')
+        print(roughness_path)
+        
+        print('veg_roughness_shearres_lookup')
+        print(veg_roughness_shearres_lookup)
+        
+        print('self.vegetation_ascii')
+        print(self.vegetation_ascii)
 
+		        
+        
+        print('streambed_roughness')
+        print(streambed_roughness)
         # convert the vegetation .asc to roughness .pol, write to veg_path
         Pol.from_ascii(
             veg2n(self.vegetation_ascii,
                   veg_roughness_shearres_lookup,
                   streambed_roughness)
-        ).write(roughness_path)
-
+        ).write('data/' + roughness_path)
+        print('JUST past polygon')
         bkdir = os.getcwd()
         os.chdir(dflow_run_directory)
-
+        print('got past polygon stuff')
         if dflow_run_fun is None:
 
             print('\n*****\nDry Run of DFLOW\n*****\n')
@@ -365,7 +382,7 @@ class ModelRun(object):
             print(self.dflow_run_directory + 'shear_out.asc')
 
             output_veg_ascii = ripcas(
-                self.vegetation_ascii, zone_map_path,
+                self.vegetation_ascii, zone_map_path, hbfl_map_path,
                 shear_asc, ripcas_required_data_path
             )
 
