@@ -173,7 +173,9 @@ def from_config(ctx, config_file, continue_cord):
         cfg['data_dir'],
         cfg['partitioned_inputs_dir'],
         cfg['initial_vegetation_map'], #vegclass_2z.asc - default
-        cfg['vegzone_map'], #zonemap_2z.asc  - default
+        # TODO - refactor cord names to handle qzone "naming"
+        cfg['vegzone_map'], #zonemap_2z.asc  - default (AKA Q-ZONE-MAP)
+        cfg['hbfl_map'], # HBFL parameter - added on 4/14/24
         cfg['veg_roughness_shearres_lookup'], #veg_roughness_shearres.xlsx  - default
         cfg['peak_flows_file'], #required by user
         cfg['geometry_file'], #DBC_geometry.xyz - required
@@ -383,6 +385,9 @@ def load_args_from_config(config_file):
 
     if gen['partitioned_inputs_dir'] == u'':
         raise RuntimeError('partitioned_inputs_dir must be defined in ' + config_file)
+    
+    if gen['hbfl_map'] == u'':
+        raise RuntimeError('hbfl_map must be defined in ' + config_file)
 
     if gen['peak_flows_file'] == u'':
         raise RuntimeError('PEAK_FLOWS_FILE must be defined in ' + config_file)

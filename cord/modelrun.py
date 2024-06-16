@@ -152,7 +152,11 @@ class ModelRun(object):
         print('path_to_dflow_inputs')
         print(path_to_dflow_inputs)
 
-        shutil.copytree(path_to_dflow_inputs, dflow_run_directory)
+        # shutil.copytree(path_to_dflow_inputs, dflow_run_directory)
+
+        os.system('cp -R {0} {1}'.format(path_to_dflow_inputs, dflow_run_directory))
+	
+        print('got past copy')
 
         # self.dflow_shear_output =\
             # os.path.join(dflow_run_directory,
@@ -168,21 +172,34 @@ class ModelRun(object):
 
         self.upstream_bc.write(bc_up_path)
         self.downstream_bc.write(bc_down_path)
-
+        print('got past copying bcs')
         self.vegetation_ascii = ESRIAsc(vegetation_map)
-
+        print('created veg ascii')
+    
         roughness_path = os.path.join(dflow_run_directory, 'n.pol')
+        print('roughness path')
+        print(roughness_path)
+        
+        print('veg_roughness_shearres_lookup')
+        print(veg_roughness_shearres_lookup)
+        
+        print('self.vegetation_ascii')
+        print(self.vegetation_ascii)
 
+		        
+        
+        print('streambed_roughness')
+        print(streambed_roughness)
         # convert the vegetation .asc to roughness .pol, write to veg_path
         Pol.from_ascii(
             veg2n(self.vegetation_ascii,
                   veg_roughness_shearres_lookup,
                   streambed_roughness)
-        ).write(roughness_path)
-
+        ).write('data/' + roughness_path)
+        print('JUST past polygon')
         bkdir = os.getcwd()
         os.chdir(dflow_run_directory)
-
+        print('got past polygon stuff')
         if dflow_run_fun is None:
 
             print('\n*****\nDry Run of DFLOW\n*****\n')
@@ -261,7 +278,7 @@ class ModelRun(object):
 
         self.ripcas_has_run = True
 
-    def run_ripcas(self, zone_map_path, ripcas_required_data_path,
+    def run_ripcas(self, zone_map_path, hbfl_map_path, ripcas_required_data_path,
                    ripcas_directory,  flow, flood_threshold):
         
         if not self.dflow_has_run:
@@ -273,6 +290,8 @@ class ModelRun(object):
         print(self.vegetation_ascii)
         print('zone_map_path')
         print(zone_map_path)
+        print('hbfl_map_path')
+        print(hbfl_map_path)
         if flood_threshold is None or flow > flood_threshold:
             print('flow')
             print(flow)
@@ -292,7 +311,7 @@ class ModelRun(object):
 
             #uncommenting this to fix the bug that was occuring
             if os.path.isdir(ripcas_directory) is False:
-                os.mkdir(ripcas_directory) #line 273, in stitch_partitioned_output, IOError: [Errno 13] Permission denied: 'data/ripcas-0/stitched-shear.nc'
+                os.mkdir(ripcas_directory) # in stitch_partitioned_output, IOError: [Errno 13] Permission denied: 'data/ripcas-0/stitched-shear.nc'
 
             partitioned_outputs = \
                 glob(
@@ -325,7 +344,7 @@ class ModelRun(object):
             )
 
             output_veg_ascii = ripcas(
-                self.vegetation_ascii, zone_map_path,
+                self.vegetation_ascii, zone_map_path, hbfl_map_path,
                 shear_asc, ripcas_required_data_path
             )
 
@@ -363,7 +382,7 @@ class ModelRun(object):
             print(self.dflow_run_directory + 'shear_out.asc')
 
             output_veg_ascii = ripcas(
-                self.vegetation_ascii, zone_map_path,
+                self.vegetation_ascii, zone_map_path, hbfl_map_path,
                 shear_asc, ripcas_required_data_path
             )
 
@@ -628,11 +647,23 @@ def determine_progress(progressfilepath, log_f):
     return flow_idx, dflow_completed, ripcas_completed
 
 
-def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, vegzone_map,
-                    veg_roughness_shearres_lookup, peak_flows_file,
-                    geometry_file, streambed_roughness,
-                    streambed_floodplain_roughness, streambed_slope,
-                    dflow_run_fun=None, log_f=None, progressfilepath='cord_progress.log', flood_threshold=None, continue_cord = False, debug=False):
+def modelrun_series(data_dir, 
+                    partitioned_inputs_dir, 
+                    initial_vegetation_map, 
+                    vegzone_map, 
+                    hbfl_map,
+                    veg_roughness_shearres_lookup, 
+                    peak_flows_file,
+                    geometry_file, 
+                    streambed_roughness,
+                    streambed_floodplain_roughness, 
+                    streambed_slope,
+                    dflow_run_fun=None, 
+                    log_f=None, 
+                    progressfilepath='cord_progress.log', 
+                    flood_threshold=None, 
+                    continue_cord = False, 
+                    debug=False):
     '''
     Run a series of flow and succession models with peak flows given in
     peak_flows_file.
@@ -641,7 +672,8 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
         data_dir (str): write directory for modelrun series. Must exist
         partitioned_inputs_dir (str): directory that contains the partitioned files
         initial_vegetation_map (str): location of year zero veg map
-        vegzone_map (str): vegetation zone map location
+        vegzone_map (str): vegetation zone map location AKA Q ZONE MAP
+        hbfl_map (str): height above base flow map
         veg_roughness_shearres_lookup (str): Excel spreadsheet containing
             conversion from vegetation code to roughness value and vegetation
             code to shear stress resistance
@@ -735,6 +767,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
     # bring all input files into the input directory
     shutil.copy(initial_vegetation_map, inputs_dir)
     shutil.copy(vegzone_map, inputs_dir)
+    shutil.copy(hbfl_map, inputs_dir)
     shutil.copy(veg_roughness_shearres_lookup, inputs_dir)
     shutil.copy(peak_flows_file, inputs_dir)
     shutil.copy(geometry_file, inputs_dir)
@@ -964,7 +997,7 @@ def modelrun_series(data_dir, partitioned_inputs_dir, initial_vegetation_map, ve
                 print(veg_file)
                 print('vegzone_map')
                 print(vegzone_map)
-                mr.run_ripcas(vegzone_map, veg_roughness_shearres_lookup,
+                mr.run_ripcas(vegzone_map, hbfl_map, veg_roughness_shearres_lookup,
                             ripcas_dir, flow, flood_threshold)
                 ripcas_completed == True
         # Note end of RipCAS in log file
