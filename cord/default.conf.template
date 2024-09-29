@@ -7,10 +7,15 @@
 
 DATA_DIR =  # must create the directory before running 
 PARTITIONED_INPUTS_DIR = C:\Users\illl0\Documents\Projects\Dflow_RipCas\JemezDFLOW_model\JemezDFLOW_model # this must exist before running
-INITIAL_VEGETATION_MAP = 
+
+INITIAL_VEGETATION_MAP =
+# Q ZONE MAP == VEGZONE_MAP - 
 VEGZONE_MAP = 
+# "Height above base flow level" map. added on 4/14/24
+HBFL_MAP = 
 VEG_ROUGHNESS_SHEARRES_LOOKUP = 
 PEAK_FLOWS_FILE =
+
 GEOMETRY_FILE = 
 FLOOD_THRESHOLD = 
 

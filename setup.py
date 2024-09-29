@@ -10,14 +10,15 @@ requires = [
     'Cython>=0.24',
     'decorator>=4.0.9',
     'funcsigs>=1.0.2',
-    'gnureadline>=6.3.3',
+    # 'gnureadline>=6.3.3', #linux
+    'pyreadline>=2.1', #windows
     'h5py>=2.5.0',
     'hs-restclient>=1.2.2',
     'netCDF4>=1.2.3.1',
-    #'scipy==1.0.0',
+    'scipy==1.0.0',
     'nose>=1.3.7',
     'oauthlib>=1.1.1',
-    'pandas>=0.17.1',
+    'pandas>=0.24.2',
     'pathlib2>=2.1.0',
     'pbr>=1.9.1',
     'pexpect>=4.0.1',
@@ -31,7 +32,9 @@ requires = [
     'simplegeneric>=0.8.1',
     'six>=1.10.0',
     'traitlets>=4.2.1',
-    'xlrd>=0.9.4'
+    'xlrd>=0.9.4',
+    'pytest==4.6',
+    'openpyxl==1.2.3'
 ]
 
 tests_require = [
