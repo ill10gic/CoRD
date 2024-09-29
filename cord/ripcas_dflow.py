@@ -195,7 +195,7 @@ def determine_veg_reset_value(zone_map_value, hbfl_map_value, vegetation_map_val
     vegetation_reset_value_column = ripcas_excel_dataframe["vegetation_reset_value"]
     
     # this is actually zero indexed - it skips the header
-    for i in range(0, 25):  # TODO: set this to figure out the number of conditions dynamically
+    for i in range(0, 40):  # TODO: set this to figure out the number of conditions dynamically
         if (zone_map_value == q_zone_map_column.iloc[i] and
             hbfl_map_value == hbfl_zone_map_column.iloc[i] and
             vegetation_map_value >= veg_input_map_min_column.iloc[i] and 
@@ -203,6 +203,10 @@ def determine_veg_reset_value(zone_map_value, hbfl_map_value, vegetation_map_val
             return vegetation_reset_value_column.iloc[i]
     
     # if there's no value found to return, throw an error:
+    print(zone_map_value)
+    print(hbfl_map_value)
+    print(vegetation_map_value)
+    print(zone_map_value)
     raise RuntimeError('Veg reset value not found with given rules')
     
     

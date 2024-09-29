@@ -195,7 +195,7 @@ class ModelRun(object):
             veg2n(self.vegetation_ascii,
                   veg_roughness_shearres_lookup,
                   streambed_roughness)
-        ).write('data/' + roughness_path)
+        ).write(roughness_path)
         print('JUST past polygon')
         bkdir = os.getcwd()
         os.chdir(dflow_run_directory)
