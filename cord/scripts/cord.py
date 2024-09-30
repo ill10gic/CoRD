@@ -3,8 +3,11 @@ from hs_restclient import HydroShare, HydroShareAuthBasic
 
 import click
 import glob
+import re
 import os
 import shutil
+from datetime import datetime
+import zipfile
 
 from ..modelrun import modelrun_series, ModelRun
 from ..ripcas_dflow import ESRIAsc, stitch_partitioned_output, shear_mesh_to_asc
@@ -187,8 +190,41 @@ def from_config(ctx, config_file, continue_cord):
         progressfile,
         cfg['flood_threshold'],
         continue_cord,
+        cfg['erase_dflow_files'], # default true
         ctx.obj['DEBUG']
     )
+    
+@cli.command()
+@click.argument('config_file', type=CPE())
+@click.option('-i', '--index', 'index')
+def export_data(config_file, index):
+    cfg = load_args_from_config(config_file)
+    data_dir = cfg['data_dir']
+    wildcard_char = '*' if index is None else index
+    dflow_run_folders = glob.glob(os.path.join(data_dir, 'dflow-{}'.format(wildcard_char)))
+    ripcas_run_folders = glob.glob(os.path.join(data_dir, 'ripcas-{}'.format(wildcard_char)))
+    all_folders = dflow_run_folders + ripcas_run_folders
+    current_datetime = datetime.now()
+    zipfile_name = "cord_export_{}.zip".format(current_datetime.strftime("%m%d%Y_%H%M%S"))
+    with zipfile.ZipFile(zipfile_name, 'w') as export_zip:
+        print('Saving...')
+        save_messages = []
+        for folder in all_folders:
+            is_dflow_folder = True if "dflow" in folder else False
+            iteration_number = re.findall("\d+", folder)[0]
+
+            if is_dflow_folder and os.path.isfile(os.path.join(folder, 'shear_out.asc')):
+                export_zip.write(os.path.join(folder, 'shear_out.asc'),
+                                 '{}_shear_out.asc'.format(iteration_number))
+                save_messages.append('{}_shear_out.asc'.format(iteration_number))
+            elif os.path.isfile(os.path.join(folder, 'vegetation.asc')):
+                export_zip.write(os.path.join(folder, 'vegetation.asc'),
+                                 '{}_vegetation.asc'.format(iteration_number))
+                save_messages.append('{}_vegetation.asc'.format(iteration_number))
+        print('Complete!')
+        print('Saved in {}:'.format(zipfile_name))
+        for message in save_messages:
+            print(message)
 
 
 @cli.command()
@@ -412,6 +448,13 @@ def load_args_from_config(config_file):
     
     if gen['flood_threshold'] is not None:
         gen['flood_threshold'] = float(gen['flood_threshold'])
+        
+    if gen['erase_dflow_files'] is None:
+        gen['erase_dflow_files'] = True
+    elif gen['erase_dflow_files'] == u'False':
+        gen['erase_dflow_files'] = False
+    elif gen['erase_dflow_files'] == u'True':
+        gen['erase_dflow_files'] = True
 
     # hydroshare config options
     hs = dict(cfg['HydroShare'])

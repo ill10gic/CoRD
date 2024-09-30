@@ -6,7 +6,7 @@
 [General]
 
 DATA_DIR =  # must create the directory before running 
-PARTITIONED_INPUTS_DIR = C:\Users\illl0\Documents\Projects\Dflow_RipCas\JemezDFLOW_model\JemezDFLOW_model # this must exist before running
+PARTITIONED_INPUTS_DIR = # this must exist before running
 
 INITIAL_VEGETATION_MAP =
 # Q ZONE MAP == VEGZONE_MAP - 
@@ -30,6 +30,8 @@ DFLOW_RUN_FUN =
 # will default to the data_dir with dashes replacing slashes if blank
 LOG_F =   
 
+# erases dflow model files after dflow completes except stitched-shear.nc and vegetation.asc to save disk space
+ERASE_DFLOW_FILES = True # default is true
 
 [HydroShare]
 

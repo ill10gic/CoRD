@@ -1,0 +1,9 @@
+============================= test session starts =============================
+platform win32 -- Python 2.7.18, pytest-4.6.0, py-1.11.0, pluggy-0.13.1 -- c:\users\illl0\miniconda3\envs\cord-test\python.exe
+cachedir: .pytest_cache
+rootdir: G:\My Drive\Projects\CoRD
+collecting ... collected 19 items / 18 deselected / 1 selected
+
+test/pytest_veg_rest_conditions.py::test_table PASSED                    [100%]
+
+=================== 1 passed, 18 deselected in 1.06 seconds ===================
