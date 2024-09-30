@@ -187,6 +187,7 @@ def from_config(ctx, config_file, continue_cord):
         progressfile,
         cfg['flood_threshold'],
         continue_cord,
+        cfg['erase_dflow_files'], # default true
         ctx.obj['DEBUG']
     )
 
@@ -412,6 +413,13 @@ def load_args_from_config(config_file):
     
     if gen['flood_threshold'] is not None:
         gen['flood_threshold'] = float(gen['flood_threshold'])
+        
+    if gen['erase_dflow_files'] is None:
+        gen['erase_dflow_files'] = True
+    elif gen['erase_dflow_files'] == u'False':
+        gen['erase_dflow_files'] = False
+    elif gen['erase_dflow_files'] == u'True':
+        gen['erase_dflow_files'] = True
 
     # hydroshare config options
     hs = dict(cfg['HydroShare'])
